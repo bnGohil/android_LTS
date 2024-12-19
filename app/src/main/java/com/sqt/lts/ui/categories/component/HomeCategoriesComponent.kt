@@ -42,99 +42,70 @@ import com.example.lts.utils.scaleSize
 fun HomeCategoriesComponent(
     categoriesState: CategoriesState? =null,
     onCategoryEvent:(CategoriesEvent) -> Unit,
+    onCategoriesClick :(Category?) -> Unit,
     listState: LazyListState = rememberLazyListState(),
-
-) {
-
-
-
-
-
+    ) {
 
     val isLoading = (categoriesState?.isLoading == true && categoriesState.categories.isEmpty())
     val isPaging = (categoriesState?.categories?.isNotEmpty() == true && categoriesState.isLoading)
 
-    Column {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Categories",
-                style = TextStyle.Default.kWhiteW500FS17(),
-                modifier = Modifier.weight(1F)
-            )
-            Text(text = "See all", style = TextStyle.Default.kWhiteW400FS13())
-        }
+    LazyRow(modifier = Modifier
+        .fillMaxWidth()
+        .padding(top = 20.dp.scaleSize()), state = listState)
+    {
 
-        LazyRow(modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 20.dp.scaleSize()), state = listState)
-        {
-
-            items(if(isLoading) 5 else (categoriesState?.categories?.size ?:0)){
+        items(if(isLoading) 5 else (categoriesState?.categories?.size ?:0)){
 
 
-                ShimmerEffectBox(
-                    modifier = if(isLoading) Modifier
-                        .padding(5.dp.scaleSize())
-                        .size(height = 40.dp.scaleSize(), width = 100.dp.scaleSize())
-                        .clip(CircleShape) else Modifier,
-                    isShow = isLoading
-                ) {
+            ShimmerEffectBox(
+                modifier = if(isLoading) Modifier
+                    .padding(5.dp.scaleSize())
+                    .size(height = 40.dp.scaleSize(), width = 100.dp.scaleSize())
+                    .clip(CircleShape) else Modifier,
+                isShow = isLoading
+            ) {
 
 
-                    if(!isLoading){
-                        if(!isPaging && categoriesState?.categories?.size == it.plus(1)){
-                            onCategoryEvent(CategoriesEvent.GetCategoryData(
-                                categoryUiState = CategoryUiState(pagingLoadingType = PagingLoadingType.IS_LOADING,)))
-                        }
-
-
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 5.dp.scaleSize())
-                                .clip(CircleShape)
-                                .background(if (categoriesState?.categories?.get(it)?.selectedCategory == true) kPrimaryColor else kCardBackgroundColor)
-                                .padding(horizontal = 10.dp.scaleSize(), vertical = 5.dp.scaleSize())
-                                .clickable {
-                                    onCategoryEvent(CategoriesEvent.CategorySelected(categoriesState?.categories?.get(it)))
-                                }
-                        ) {
-
-                            Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                Image(
-                                    modifier = Modifier.size(25.dp.scaleSize()).clip(CircleShape),
-                                    painter = rememberAsyncImagePainter(model = categoriesState?.categories?.get(it)?.photourl ?:""),
-                                    contentDescription = null)
-                                Spacer(modifier = Modifier.width(10.dp.scaleSize()))
-                                Text(
-                                    text =  categoriesState?.categories?.get(it)?.categoryname?:"",
-                                    style = TextStyle.Default.kWhiteW400FS13()
-                                )
+                if(!isLoading){
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 5.dp.scaleSize())
+                            .clip(CircleShape)
+                            .background(if (categoriesState?.categories?.get(it)?.selectedCategory == true) kPrimaryColor else kCardBackgroundColor)
+                            .padding(horizontal = 10.dp.scaleSize(), vertical = 5.dp.scaleSize())
+                            .clickable {
+                                onCategoriesClick(categoriesState?.categories?.get(it))
                             }
+                    ) {
+
+
+
+                        Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                modifier = Modifier.size(25.dp.scaleSize()).clip(CircleShape),
+                                painter = rememberAsyncImagePainter(model = categoriesState?.categories?.get(it)?.photourl ?:""),
+                                contentDescription = null)
+                            Spacer(modifier = Modifier.width(10.dp.scaleSize()))
+                            Text(
+                                text =  categoriesState?.categories?.get(it)?.categoryname?:"",
+                                style = TextStyle.Default.kWhiteW400FS13()
+                            )
                         }
                     }
-
-
-
                 }
-
-                if(isPaging && (it.plus(1) == categoriesState.categories.size)){
-                    ShimmerEffectBox( modifier = Modifier
-                        .size(height = 40.dp.scaleSize(), width = 100.dp.scaleSize())
-                        .clip(CircleShape),
-                        isShow = true
-                    ) {}
-                }
-
             }
 
-
-
-
-
+            if(isPaging && (it.plus(1) == categoriesState?.categories?.size)){
+                ShimmerEffectBox( modifier = Modifier
+                    .size(height = 40.dp.scaleSize(), width = 100.dp.scaleSize())
+                    .clip(CircleShape),
+                    isShow = true
+                ) {}
+            }
 
         }
+
+
 
 
 
@@ -146,7 +117,9 @@ fun HomeCategoriesComponent(
 @Composable
 private fun HomeCategoriesComponentPreview() {
     LtsTheme {
-        HomeCategoriesComponent(categoriesState = CategoriesState(
+        HomeCategoriesComponent(
+            onCategoriesClick = {},
+            categoriesState = CategoriesState(
             categories = arrayListOf<Category>(
                 Category(categoryname = "Category1", categoryid = 1),
                 Category(categoryname = "Category2", categoryid = 2),

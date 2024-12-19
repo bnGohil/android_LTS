@@ -42,13 +42,6 @@ fun CustomChannelViewComponent(
 
 
     Column {
-
-        if(!title.isNullOrEmpty()){
-            Row(modifier = Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(text = title, style = TextStyle.Default.kWhiteW500FS17())
-                Text(text = "See all", style = TextStyle.Default.kWhiteW500FS17())
-            }
-        }
         Spacer(modifier = Modifier.height(15.dp.scaleSize()))
         LazyRow {
             items(channelList?.size?:0){

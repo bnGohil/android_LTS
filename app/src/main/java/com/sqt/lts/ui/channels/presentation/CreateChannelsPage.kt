@@ -1,8 +1,15 @@
 package com.sqt.lts.ui.channels.presentation
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.ContentResolver
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -37,6 +44,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,26 +63,34 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.lts.base.BaseCommonResponseModel
-import com.sqt.lts.R
 import com.example.lts.custom_component.CustomButton
 import com.example.lts.custom_component.CustomTextFromFiled
 import com.example.lts.custom_component.CustomTopBar
-import com.sqt.lts.ui.theme.LtsTheme
-import com.sqt.lts.ui.theme.kBackGround
-import com.sqt.lts.ui.theme.kBlackColor
-import com.sqt.lts.ui.theme.kWhite
 import com.example.lts.utils.extainstion.createUniqueImageFileUri
 import com.example.lts.utils.extainstion.kBlackW700FS18
 import com.example.lts.utils.extainstion.kWhiteW500FS17
 import com.example.lts.utils.network.DataState
 import com.example.lts.utils.scaleSize
+import com.sqt.lts.R
 import com.sqt.lts.custom_component.CustomNetworkImageView
+import com.sqt.lts.datasource.remote.RestApiService
 import com.sqt.lts.navigation.route.CreateChannelRoute
 import com.sqt.lts.ui.channels.event.ChannelEvent
 import com.sqt.lts.ui.channels.state.ChannelDetailUiState
+import com.sqt.lts.ui.theme.LtsTheme
+import com.sqt.lts.ui.theme.kBackGround
+import com.sqt.lts.ui.theme.kBlackColor
+import com.sqt.lts.ui.theme.kWhite
 import com.sqt.lts.utils.enums.ChannelUpdateNotUpdateType
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 
+@SuppressLint("Recycle")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateChannelsPage(
@@ -151,8 +167,7 @@ fun CreateChannelsPage(
 
 
 
-
-
+    val scope = rememberCoroutineScope()
 
     var isBottomSheet by remember { mutableStateOf<Boolean>(false) }
     val channelName = remember { mutableStateOf<String>("") }
@@ -160,6 +175,7 @@ fun CreateChannelsPage(
     var mainProfileUrl by remember { mutableStateOf<Uri?>(null) }
     var profileCameraUri by remember { mutableStateOf<Uri?>(null) }
     var mainBannerUrl by remember { mutableStateOf<Uri?>(null) }
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var cameraBannerUrl by remember { mutableStateOf<Uri?>(null) }
     val sheetState = rememberModalBottomSheetState()
 
@@ -175,9 +191,12 @@ fun CreateChannelsPage(
         ActivityResultContracts.PickVisualMedia(),
         onResult = {
             mainBannerUrl = it
+
             isBottomSheet = false
         }
     )
+
+
 
 
 
@@ -329,6 +348,18 @@ fun CreateChannelsPage(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp.scaleSize(), vertical = 20.dp.scaleSize())
             ) {
+
+//                if(bitmap != null){
+//                    Image(
+//                        bitmap = bitmap!!.asImageBitmap(),
+//                        contentDescription = "Selected Image",
+//                        modifier = Modifier
+//                            .size(200.dp)
+//                            .padding(8.dp),
+//                        contentScale = ContentScale.Crop
+//                    )
+//                }
+
                 if(mainProfileUrl != null){
                     CustomNetworkImageView(
                         imagePath = mainProfileUrl?.toString(),
@@ -402,6 +433,7 @@ fun CreateChannelsPage(
                 CustomButton(btnText =  if(createChannelRoute?.channelUpdateNotUpdateType == ChannelUpdateNotUpdateType.CHANNEL_NOT_UPDATE) "Add" else "Update",
                     isLoading = isLoading,
                     onClick = {
+
                         when(createChannelRoute?.channelUpdateNotUpdateType){
 
                             ChannelUpdateNotUpdateType.CHANNEL_UPDATE -> {
@@ -431,6 +463,24 @@ fun CreateChannelsPage(
 
 
     }
+    }
+
+
+}
+
+fun uriToBitmap(contentResolver: ContentResolver, uri: Uri): Bitmap? {
+    return try {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            // For API levels below 28
+            MediaStore.Images.Media.getBitmap(contentResolver, uri)
+        } else {
+            // For API 28 and above
+            val source = ImageDecoder.createSource(contentResolver, uri)
+            ImageDecoder.decodeBitmap(source)
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }
 

@@ -46,7 +46,7 @@ fun CategoriesTabComponent(onCategoryEvent:(CategoriesEvent) -> Unit,selectedTab
                 .clickable {
                     if(isLoading == false){
                         onChangeTab(it.categoriesType)
-                        onCategoryEvent(CategoriesEvent.SelectedCategoryTabData(it))
+//                        onCategoryEvent(CategoriesEvent.SelectedCategoryTabData(it))
                         onCategoryEvent(CategoriesEvent.ClearCategories)
                         onCategoryEvent(CategoriesEvent.GetAllCategoryData(
                             isFirst = true,

@@ -123,6 +123,7 @@ fun Trending(
             listState = listState,
             onCategoryEvent = {},
             categoriesState = categoryForTrendingState,
+            onCategoriesClick = {}
         )
         Spacer(modifier = Modifier.height(20.dp.scaleSize()))
         LazyColumn(state = listForTrendingState) {

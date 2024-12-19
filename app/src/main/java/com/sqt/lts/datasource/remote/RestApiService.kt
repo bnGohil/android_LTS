@@ -9,6 +9,7 @@ import com.example.lts.ui.auth.data.response.CountryData
 import com.example.lts.ui.auth.data.response.LoginUserResponseModel
 import com.example.lts.ui.categories.data.response.CategoryResponseModel
 import com.google.gson.annotations.SerializedName
+import com.sqt.lts.base.BaseTermDataModel
 import com.sqt.lts.ui.channels.data.request.FollowAndUnFollowRequestModel
 import com.sqt.lts.ui.channels.data.response.ChannelDataResponseModel
 import com.sqt.lts.ui.channels.data.response.GetChannelDetailDataModel
@@ -16,6 +17,7 @@ import com.sqt.lts.ui.history.request.AddAndRemoveRequestModel
 import com.sqt.lts.ui.history.request.HistoryAndWatchListRequestModel
 import com.sqt.lts.ui.history.response.HistoryResponseModel
 import com.sqt.lts.ui.history.response.WatchListResponseModel
+import com.sqt.lts.ui.post_video.data.request.TermCategoryRequestModel
 import com.sqt.lts.ui.profile.response.UserProfileResponseModel
 import com.sqt.lts.ui.trending.data.response.TrendingResponseModel
 import com.sqt.lts.ui.trending.data.response.TrendingVideoDetailModel
@@ -140,6 +142,8 @@ interface RestApiService {
     @POST("watchlist/remove")
     suspend fun removeWatchList(@Body addAndRemoveRequestModel:AddAndRemoveRequestModel?) : BaseCommonResponseModel
 
+    @POST("projectterm/projecttermbytermcategory")
+    suspend fun projectTermByTermCategory(@Body termCategoryRequestModel:TermCategoryRequestModel) : BaseTermDataModel
 }
 
 data class CountryResponseModel(

@@ -1,5 +1,6 @@
 package com.example.lts.ui.auth
 
+import LoginRoute
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable

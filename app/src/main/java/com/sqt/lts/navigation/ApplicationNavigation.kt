@@ -1,5 +1,6 @@
 package com.example.lts.navigation
 
+import LoginRoute
 import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -51,6 +52,7 @@ import com.sqt.lts.navigation.route.FollowingDetailRoute
 import com.sqt.lts.navigation.route.FollowingRoute
 import com.sqt.lts.navigation.route.ForgotRoute
 import com.sqt.lts.navigation.route.HistoryAndWatchlistRoute
+import com.sqt.lts.navigation.route.PostSaveVideoRoute
 import com.sqt.lts.navigation.route.PostVideoRoute
 import com.sqt.lts.navigation.route.ProfileSettingRoute
 import com.sqt.lts.navigation.route.RegisterRoute
@@ -63,6 +65,7 @@ import com.sqt.lts.ui.history.event.HistoryAndWatchListEvent
 import com.sqt.lts.ui.history.request.HistoryAndWatchListRequestModel
 import com.sqt.lts.ui.history.viewmodel.HistoryWatchListViewModel
 import com.sqt.lts.ui.home.view_model.HomeViewModel
+import com.sqt.lts.ui.post_video.SaveVideoPostPage
 import com.sqt.lts.ui.profile.event.ProfileEvent
 import com.sqt.lts.ui.profile.viewmodel.SettingViewModel
 import com.sqt.lts.ui.trending.data.request.TrendingRequestModel
@@ -186,6 +189,7 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                             )
                         )
                     )
+
                     categoriesViewModel.onEvent(CategoriesEvent.CategoryAllSelected)
                 }
 
@@ -270,9 +274,25 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
             }
 
             composable<PostVideoRoute> {
+
+                val getChannelForPostVideoResponse = channelViewModel.getChannelForPostVideoResponse.collectAsStateWithLifecycle(null)
+
+                val categoriesForPostVideoAppResponse = categoriesViewModel.categoriesForPostVideoAppResponse.collectAsStateWithLifecycle(null)
+
                 PostVideoPage(
-                    navHostController = navController
+                    navHostController = navController,
+                    kChannelFunction = channelViewModel::onEvent,
+                    channelUiState = getChannelForPostVideoResponse.value,
+                    kCategoriesFunction=categoriesViewModel::onEvent,
+                    categoriesState=categoriesForPostVideoAppResponse.value
                 )
+            }
+
+            composable<PostSaveVideoRoute> {
+
+                val argument = it.toRoute<PostSaveVideoRoute>()
+
+                SaveVideoPostPage(navHostController = navController,url = argument.url)
             }
 
             composable<ForgotRoute>(){
@@ -397,13 +417,9 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                     LaunchedEffect(Unit) {
                         historyAndWatchViewModel.onEvent(HistoryAndWatchListEvent.HistoryEvent(
                             historyAndWatchListRequestModel = HistoryAndWatchListRequestModel(
-                                limit = 10,
-                                sortcolumn = "date",
-                                days = 30,
-                                isFirst = true,
-                                sortdirection = "desc"
-                            )
-                        ))
+                                limit = 10, sortcolumn = "date", days = 30, isFirst = true, sortdirection = "desc")
+                        )
+                        )
                     }
 
                 }else if(argument.navigationDrawer == NavigationDrawer.WATCHLIST){
@@ -412,7 +428,6 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                             historyAndWatchListRequestModel = HistoryAndWatchListRequestModel(
                                 limit = 10,
                                 sortcolumn = "date",
-//                                days = 30,
                                 isFirst = true,
                                 sortdirection = "desc"
                             )

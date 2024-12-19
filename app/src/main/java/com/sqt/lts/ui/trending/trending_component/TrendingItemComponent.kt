@@ -84,7 +84,7 @@ fun TrendingItemComponent(
 
     LazyColumn {
 
-        items(if(isVideoLoading == true || isChannelLoading == true) 10  else homeList?.size?:0){
+        items(if(isVideoLoading || isChannelLoading) 10  else homeList?.size?:0){
 
                 if(homeList?.size == it.plus(1) && !isPagingLoading){
                     onTrendingEvent(TrendingEvent.GetTrendingDataForHome(trendingRequestModel = TrendingRequestModel(isFirst = false, limit = 3, currentRecord = homeList.size)))
@@ -92,10 +92,10 @@ fun TrendingItemComponent(
 
 
                 ShimmerEffectBox(
-                    isShow = (isVideoLoading == true && isChannelLoading == true),
+                    isShow = (isVideoLoading && isChannelLoading),
                     content = {
 
-                        if(!(isVideoLoading == true || isChannelLoading == true)){
+                        if(!(isVideoLoading || isChannelLoading)){
 
                             if(homeList?.get(it)?.homeDataEnums == HomeDataEnums.CHANNEL){
 

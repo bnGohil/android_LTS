@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lts.base.BaseCommonResponseModel
+import com.example.lts.ui.auth.data.response.CountryData
 import com.sqt.lts.ui.channels.event.ChannelEvent
 import com.sqt.lts.ui.channels.event.FollowingType
 import com.example.lts.utils.network.DataState
@@ -30,6 +31,10 @@ class ChannelViewModel @Inject constructor(private val channelRepository: Channe
 
     private val _getChannelResponse = MutableStateFlow(ChannelUiState())
     val getChannelResponse : StateFlow<ChannelUiState> = _getChannelResponse
+
+
+    private val _getChannelForPostVideoResponse = MutableStateFlow(ChannelUiState())
+    val getChannelForPostVideoResponse = _getChannelForPostVideoResponse.asStateFlow()
 
     private val _getCaAccountChannelResponse = MutableStateFlow(ChannelUiState())
     val getCaAccountChannelResponse : StateFlow<ChannelUiState> = _getCaAccountChannelResponse
@@ -129,6 +134,10 @@ class ChannelViewModel @Inject constructor(private val channelRepository: Channe
                     photo = channelEvent.photo
                 )
             }
+
+            is ChannelEvent.GetSavePostForChannelData -> {
+                getChannelForPostVideoData(channelEvent.channelRequestModel)
+            }
         }
     }
 
@@ -170,6 +179,61 @@ class ChannelViewModel @Inject constructor(private val channelRepository: Channe
                 is DataState.Success -> {
                     currentHomeChannelPage +=1
                     _getHomeChannelResponse.emit(ChannelUiState(dataState = it, channelList = it.data?.channelList, isLoading = false,isFirst = channelRequestModel?.isFirst, totalCount = it.data?.totalRecords?:0, selectedList = _selectedListId))
+                }
+            }
+
+
+        }.launchIn(viewModelScope)
+    }
+
+    private fun getChannelForPostVideoData(channelRequestModel : ChannelRequestModel?){
+
+        channelRepository.getChannelData(channelRequestModel = ChannelRequestModel(
+
+            page = 1,
+
+            limit = 100,
+
+
+            isFirst = channelRequestModel?.isFirst,
+                    sortColumn=channelRequestModel?.sortColumn,
+                    sortDirection=channelRequestModel?.sortDirection,
+                    categoryIds=channelRequestModel?.categoryIds,
+                    exceptChannelIds=channelRequestModel?.exceptChannelIds,
+                    myCreatedChannel=channelRequestModel?.myCreatedChannel,
+                    myFollowingChannel=channelRequestModel?.myFollowingChannel,
+
+            )).onEach {
+
+                println("it : $it")
+
+            when(it){
+
+                is DataState.Error -> {
+                    _getChannelForPostVideoResponse.emit(ChannelUiState(dataState = it, channelList = arrayListOf(), isLoading = false))
+                }
+
+                is DataState.Loading -> {
+                    _getChannelForPostVideoResponse.emit(ChannelUiState(dataState = it, channelList = arrayListOf(), isLoading = true))
+                }
+
+                is DataState.Success -> {
+                    val countryList = arrayListOf<CountryData>()
+
+                    if(it.data?.channelList != null){
+
+                        for (value in it.data.channelList){
+
+                        countryList.add(CountryData(
+                            countryname = value?.channelname ?: "",
+                            countrycode = value?.channelname ?: "",
+                            countryid = value?.channelid))
+                    }
+                        println("countryList : $countryList")
+
+                    }
+                    _getChannelForPostVideoResponse.emit(ChannelUiState(dataState = it, countryList = countryList,
+                        channelList = it.data?.channelList, isLoading = false,isFirst = channelRequestModel?.isFirst, totalCount = it.data?.totalRecords?:0, selectedList = _selectedListId))
                 }
             }
 

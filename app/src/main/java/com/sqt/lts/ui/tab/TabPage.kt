@@ -1,6 +1,7 @@
 package com.example.lts.ui.tab
 
 import CustomTabTopBar
+import LoginRoute
 import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -294,7 +295,9 @@ fun TabPage(
     ) {
         Scaffold(containerColor = kBackGround, topBar = {
                 CustomTabTopBar(
+                    userDetailUiState = userDetailUiState,
                     saveLoginState = saveLoginState,
+                    tabState = tabState,
                     onClick = {
 
                         if (saveLoginState?.isLogin == true) {
@@ -312,6 +315,7 @@ fun TabPage(
        bottomBar = {CustomMainBottomNavigationBar(onTabEvent = onTabEvent, state = tabState, onCategoryEvent = onCategoryEvent)}) {
        paddingValues -> Column(modifier = Modifier.padding(paddingValues)) {
        ReturnScreens(
+           saveLoginState = saveLoginState,
            categoriesState = categoriesState,
            userDetailUiState = userDetailUiState,
            channelDataState=channelDataState,
@@ -410,6 +414,7 @@ private fun TabPagePreview() {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ReturnScreens(
+    saveLoginState: SaveLoginState? =null,
     userDetailUiState: UserDetailGetState? =null,
     onTrendingEvent:(TrendingEvent) -> Unit,
     selectedTab:CategoryType?=null,
@@ -446,6 +451,7 @@ fun ReturnScreens(
         }
         BottomNavBarItem.home -> {
             Home(
+                saveLoginState = saveLoginState,
                 channelDataState=channelDataState,
                 channelUiState = channelHomeUiState,
                 onHomeDataEvent = onHomeDataEvent,

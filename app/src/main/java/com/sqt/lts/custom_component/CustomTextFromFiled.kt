@@ -16,10 +16,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -40,6 +36,7 @@ fun CustomTextFromFiled(
     keyboardType: KeyboardType = KeyboardType.Unspecified,
     onValueChange: (String) -> Unit,
     value: String?="",
+    enabled: Boolean?=true,
     titleText: String?=null, prefix: (@Composable () -> Unit) ?= null, suffix: (@Composable () -> Unit) ?= null, singleLine: Boolean?=true) {
 
 //    var value by remember{ mutableStateOf<String>("") }
@@ -56,6 +53,7 @@ fun CustomTextFromFiled(
                 if (value != null) {
                     BasicTextField(
                         singleLine = singleLine?:true,
+                        enabled = enabled?:true,
                         visualTransformation = visualTransformation,
                         keyboardOptions = KeyboardOptions(
                             imeAction = imeAction,

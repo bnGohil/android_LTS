@@ -11,6 +11,7 @@ sealed class ChannelEvent {
     data class GetCaAccountChannelData(val channelRequestModel : ChannelRequestModel?) : ChannelEvent()
     data class GetFollowingChannelData(val channelRequestModel : ChannelRequestModel?) : ChannelEvent()
     data class GetChannelData(val channelRequestModel : ChannelRequestModel?) : ChannelEvent()
+    data class GetSavePostForChannelData(val channelRequestModel : ChannelRequestModel?) : ChannelEvent()
     data class ChangeStatusForFollowAndUnFollow(val channelData: ChannelData) : ChannelEvent()
     data class SelectedChannelTabData(val selectedChannelState: SelectedChannelState) : ChannelEvent()
     data object ClearSelectedList : ChannelEvent()

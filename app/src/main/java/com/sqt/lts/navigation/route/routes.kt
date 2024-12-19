@@ -1,5 +1,7 @@
 package com.sqt.lts.navigation.route
 
+
+import android.net.Uri
 import com.example.lts.ui.tab.data.NavigationDrawer
 import com.sqt.lts.utils.enums.ChannelUpdateNotUpdateType
 import kotlinx.serialization.Serializable
@@ -41,6 +43,8 @@ data object FollowingDetailRoute
 data class CreateChannelRoute(val channelUpdateNotUpdateType:ChannelUpdateNotUpdateType?=null,val channelId: Int?=null)
 @Serializable
 data object PostVideoRoute
+@Serializable
+data class PostSaveVideoRoute(val url : String ?= null)
 @Serializable
 data class HistoryAndWatchlistRoute(val title: String? = null,val navigationDrawer: NavigationDrawer?=null)
 @Serializable

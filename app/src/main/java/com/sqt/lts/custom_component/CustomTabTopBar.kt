@@ -33,19 +33,25 @@ import androidx.navigation.compose.rememberNavController
 import com.example.lts.navigation.navigation_view_model.NavigationViewModel
 import com.example.lts.ui.sharedPreferences.data.SaveLoginState
 import com.example.lts.ui.tab.bottom_bar.BottomNavBarItem
+import com.example.lts.ui.tab.state.TabState
 import com.example.lts.ui.tab.tab_view_model.TabViewModel
 import com.example.lts.utils.extainstion.kPrimaryColorW400FS15
+import com.example.lts.utils.extainstion.kSecondaryTextColorW500FS15
+import com.example.lts.utils.extainstion.kWhiteW400FS13
 import com.example.lts.utils.extainstion.kWhiteW500FS17
 import com.example.lts.utils.scaleSize
 import com.sqt.lts.ui.theme.kCardBackgroundColor
 import com.sqt.lts.ui.theme.kPrimaryColor
 
 import com.sqt.lts.R
+import com.sqt.lts.ui.profile.state.UserDetailGetState
 
 @Composable
 fun CustomTabTopBar(
     saveLoginState: SaveLoginState?=null,
+    userDetailUiState: UserDetailGetState? =null,
     navHostController: NavHostController,
+    tabState: TabState? =null,
     onClick: () -> Unit,
 ) {
 
@@ -63,23 +69,41 @@ fun CustomTabTopBar(
                 .padding(vertical = 10.dp.scaleSize(), horizontal = 10.dp.scaleSize())
         ) {
             Image(
-                modifier = Modifier.size(50.dp.scaleSize()).clickable {
-                    onClick.invoke()
-                },
+                modifier = Modifier
+                    .size(50.dp.scaleSize())
+                    .clickable {
+                        onClick.invoke()
+                    },
                 painter = painterResource(id = R.drawable.subtract),
                 contentDescription = "",
                 contentScale = ContentScale.Fit
             )
             Spacer(modifier = Modifier.width(20.dp.scaleSize()))
-//            Text(modifier = Modifier.weight(1F),text = if(tabState.selectedTab ==  BottomNavBarItem.home) "Listen to\n" + "Seniors" else (tabState.selectedTab?.itemName ?: ""), style = TextStyle.Default.kWhiteW500FS17(), textAlign = TextAlign.Center)
-//            if(state.isLogin == true){
-//                Column(modifier = Modifier.weight(1F)) {
-//                    Text(text = "Bhadresh Gohil", style = TextStyle.Default.kWhiteW700FS20())
-//                    Text(text = "bhadreshGohil@gmail.com", style = TextStyle.Default.kWhiteW700FS20())
-//                }
-//            }else{
-//                Text(modifier = Modifier.weight(1F),text = if(tabState.selectedTab ==  BottomNavBarItem.home) "Listen to\n" + "Seniors" else (tabState.selectedTab?.itemName ?: ""), style = TextStyle.Default.kWhiteW700FS20(), textAlign = TextAlign.Center)
-//            }
+
+            if(saveLoginState?.isLogin == true){
+                if(tabState?.selectedTab ==  BottomNavBarItem.home){
+                    Column(
+                        modifier = Modifier.weight(1F),
+                    ) {
+                        Text(
+                            text = userDetailUiState?.data?.displayname ?: "",
+                            style = TextStyle.Default.kWhiteW500FS17(),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = userDetailUiState?.data?.email ?: "",
+                            style = TextStyle.Default.kWhiteW500FS17(),
+                            textAlign = TextAlign.Center
+                        )
+
+                    }
+                }else{
+                    Text(modifier = Modifier.weight(1F),text = tabState?.selectedTab?.itemName?:"", style = TextStyle.Default.kWhiteW500FS17(), textAlign = TextAlign.Center)
+                }
+
+            }else{
+                Text(modifier = Modifier.weight(1F),text = if(tabState?.selectedTab ==  BottomNavBarItem.home) "Listen to\n" + "Seniors" else (tabState?.selectedTab?.itemName ?: ""), style = TextStyle.Default.kWhiteW500FS17(), textAlign = TextAlign.Center)
+            }
 
             if(saveLoginState?.isLogin == true){
                 Row() {

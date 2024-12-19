@@ -6,14 +6,22 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.lts.enums.PagingLoadingType
 import com.example.lts.ui.categories.component.HomeCategoriesComponent
+import com.example.lts.ui.categories.data.request.GetCategoryRequestModel
+import com.example.lts.ui.categories.data.response.SelectedType
+import com.example.lts.ui.categories.data.ui_state.CategoryUiState
+import com.example.lts.ui.sharedPreferences.data.SaveLoginState
 import com.sqt.lts.ui.categories.event.CategoriesEvent
 import com.sqt.lts.ui.categories.state.CategoriesState
 import com.sqt.lts.ui.channels.event.ChannelEvent
@@ -38,6 +46,7 @@ fun Home(
     onChannelEvent:(ChannelEvent) -> Unit,
     homeList: List<HomeResourceAndChannelJoinModel?>?=arrayListOf(),
     trendingState: TrendingState? =null,
+    saveLoginState: SaveLoginState? =null,
     channelUiState: ChannelUiState? =null,
     categoriesState: CategoriesState? =null,
     onTrendingEvent:(TrendingEvent) -> Unit,
@@ -46,13 +55,51 @@ fun Home(
     channelDataState:ChannelFollowingState?=null,
     onHomeDataEvent:(HomeEvent) -> Unit,
 ) {
+
+    val listState = rememberLazyListState()
+    val isPagingLoading = (categoriesState?.isLoading == true && categoriesState.categories.isNotEmpty())
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo }
+            .collect{
+                if((it.lastOrNull()?.index?:0) >= 9 && !isPagingLoading && it.lastOrNull()?.index?.plus(1) == listState.layoutInfo.totalItemsCount){
+
+                    onCategoryEvent(
+                        CategoriesEvent.GetCategoryData(
+                            categoryUiState = CategoryUiState(
+                                pagingLoadingType = PagingLoadingType.IS_LOADING,
+                                getCategoryRequestModel = GetCategoryRequestModel(
+                                    sortColumn = "",
+                                    displayLoginUserCategory = if(saveLoginState?.isLogin == false) 1 else 0,
+                                    page = 1,
+                                    limit = 100,
+                                    sortDirection = "desc"
+                                )
+                            )
+                        )
+                    )
+                }
+            }
+    }
+
     Scaffold(containerColor = kBackGround) {
         paddingValues -> Column(modifier = Modifier
         .padding(paddingValues)
-        .padding(vertical = 10.dp.scaleSize(), horizontal = 20.dp.scaleSize())
+        .padding(vertical = 5.dp.scaleSize(), horizontal = 20.dp.scaleSize())
         ) {
-        HomeCategoriesComponent(categoriesState = categoriesState,onCategoryEvent=onCategoryEvent)
-        Spacer(modifier = Modifier.height(10.dp.scaleSize()))
+        HomeCategoriesComponent(
+            listState = listState,
+            categoriesState = categoriesState,
+            onCategoryEvent=onCategoryEvent,
+            onCategoriesClick = {
+                if(it?.type == SelectedType.ALL){
+                    onCategoryEvent(CategoriesEvent.SelectAllCategories)
+                }else{
+                    onCategoryEvent(CategoriesEvent.CategorySelected(it))
+                }
+            }
+            )
+        Spacer(modifier = Modifier.height(5.dp.scaleSize()))
         TrendingItemComponent(
             channelDataState=channelDataState,
             onChannelEvent = onChannelEvent,

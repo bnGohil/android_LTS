@@ -1,11 +1,13 @@
 package com.sqt.lts.ui.channels.state
 
+import com.example.lts.ui.auth.data.response.CountryData
 import com.example.lts.utils.network.DataState
 import com.sqt.lts.ui.channels.data.response.ChannelData
 import com.sqt.lts.ui.channels.data.response.GetChannelDetailDataModel
 
 data class ChannelUiState(
     var channelList: List<ChannelData?>? = arrayListOf(),
+    var countryList: ArrayList<CountryData>? = arrayListOf(),
     val selectedList: List<Int?>? = arrayListOf(),
     val dataState : DataState<GetChannelDetailDataModel.Data?> ?= null,
     val page : Int = 1,
