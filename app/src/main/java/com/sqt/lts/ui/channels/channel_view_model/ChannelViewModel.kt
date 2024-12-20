@@ -143,6 +143,8 @@ class ChannelViewModel @Inject constructor(private val channelRepository: Channe
 
     private fun getHomeChannelData(channelRequestModel : ChannelRequestModel?){
 
+        println("Channel CategoryIds : ${channelRequestModel?.categoryIds}")
+
         if(channelRequestModel?.isFirst == true){
             currentHomeChannelPage = 1
 

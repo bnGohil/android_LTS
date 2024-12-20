@@ -55,6 +55,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.lts.ui.categories.data.response.Category
 import com.sqt.lts.navigation.route.CaAccountRoute
 import com.sqt.lts.navigation.route.CreateChannelRoute
 import com.sqt.lts.navigation.route.FollowingRoute
@@ -124,6 +125,7 @@ fun TabPage(
     onTabEvent: (TabEvent) -> Unit,
     saveLoginState: SaveLoginState?=null,
     selectedTab:CategoryType?=null,
+    category: Category?=null,
     channelDataState:ChannelFollowingState?=null,
     onSharedPreferencesEvent:(SharedPreferencesEvents) -> Unit,
 
@@ -316,6 +318,7 @@ fun TabPage(
        paddingValues -> Column(modifier = Modifier.padding(paddingValues)) {
        ReturnScreens(
            saveLoginState = saveLoginState,
+           category = category,
            categoriesState = categoriesState,
            userDetailUiState = userDetailUiState,
            channelDataState=channelDataState,
@@ -415,6 +418,7 @@ private fun TabPagePreview() {
 @Composable
 fun ReturnScreens(
     saveLoginState: SaveLoginState? =null,
+    category: Category?=null,
     userDetailUiState: UserDetailGetState? =null,
     onTrendingEvent:(TrendingEvent) -> Unit,
     selectedTab:CategoryType?=null,
@@ -451,6 +455,7 @@ fun ReturnScreens(
         }
         BottomNavBarItem.home -> {
             Home(
+                category = category,
                 saveLoginState = saveLoginState,
                 channelDataState=channelDataState,
                 channelUiState = channelHomeUiState,

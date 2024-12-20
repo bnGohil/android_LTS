@@ -152,6 +152,7 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                 val getChannelResponse = channelViewModel.getChannelResponse.collectAsStateWithLifecycle(initialValue = null)
                 val categoryHomeState = categoriesViewModel.categoryHomeState.collectAsStateWithLifecycle(initialValue = null)
                 val categoryForTrendingState = categoriesViewModel.categoryForTrendingState.collectAsStateWithLifecycle(initialValue = null)
+                val updateCategoryData = categoriesViewModel.updateCategoryData.collectAsStateWithLifecycle(initialValue = null)
                 val categoryDataState = categoriesViewModel.categoryDataState.collectAsStateWithLifecycle(initialValue = null)
                 val trendingHomeState = trendingViewModel.trendingHomeState.collectAsStateWithLifecycle(initialValue = null)
                 val trendingState = trendingViewModel.trendingState.collectAsStateWithLifecycle(initialValue = null)
@@ -168,10 +169,6 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                 LaunchedEffect(tabViewModel) {
                     tabViewModel.onEvent(TabEvent.GetTabData)
                 }
-
-
-
-
 
 
                 LaunchedEffect(key1 = categoriesViewModel) {
@@ -252,6 +249,7 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                     channelUiState = getChannelResponse.value,
                     categoryForTrendingState = categoryForTrendingState.value,
                     trendingState = trendingState.value,
+                    category = updateCategoryData.value
                 )
             }
 

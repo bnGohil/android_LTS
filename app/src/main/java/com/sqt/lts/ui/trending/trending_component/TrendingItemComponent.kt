@@ -49,7 +49,7 @@ fun TrendingItemComponent(
 
         when(channelUiState?.dataState){
             is DataState.Error -> {
-
+                onHomeDataEvent(HomeEvent.GetChannelList(list = arrayListOf(), true))
             }
             is DataState.Loading -> {
 
@@ -65,7 +65,9 @@ fun TrendingItemComponent(
 
     LaunchedEffect(trendingState) {
         when(trendingState?.dataState){
-            is DataState.Error -> {}
+            is DataState.Error -> {
+                onHomeDataEvent(HomeEvent.GetVideoList(list = arrayListOf(), first = true))
+            }
             is DataState.Loading -> {}
             is DataState.Success -> {
                 onHomeDataEvent(HomeEvent.GetVideoList(list = trendingState.videoAudioList, first = trendingState.isFirst))
@@ -86,9 +88,9 @@ fun TrendingItemComponent(
 
         items(if(isVideoLoading || isChannelLoading) 10  else homeList?.size?:0){
 
-                if(homeList?.size == it.plus(1) && !isPagingLoading){
-                    onTrendingEvent(TrendingEvent.GetTrendingDataForHome(trendingRequestModel = TrendingRequestModel(isFirst = false, limit = 3, currentRecord = homeList.size)))
-                }
+//                if(homeList?.size == it.plus(1) && !isPagingLoading){
+//                    onTrendingEvent(TrendingEvent.GetTrendingDataForHome(trendingRequestModel = TrendingRequestModel(isFirst = false, limit = 3, currentRecord = homeList.size)))
+//                }
 
 
                 ShimmerEffectBox(

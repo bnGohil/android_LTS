@@ -110,7 +110,7 @@ fun Trending(
     }
 
 
-    val isLoading = trendingState?.isLoading == true && trendingState.videoAudioList?.isEmpty == true
+    val isLoading = trendingState?.isLoading == true && trendingState.videoAudioList?.isEmpty() == true
 
 
 

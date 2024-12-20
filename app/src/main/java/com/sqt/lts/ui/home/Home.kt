@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -19,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.lts.enums.PagingLoadingType
 import com.example.lts.ui.categories.component.HomeCategoriesComponent
 import com.example.lts.ui.categories.data.request.GetCategoryRequestModel
+import com.example.lts.ui.categories.data.response.Category
 import com.example.lts.ui.categories.data.response.SelectedType
 import com.example.lts.ui.categories.data.ui_state.CategoryUiState
 import com.example.lts.ui.sharedPreferences.data.SaveLoginState
@@ -30,6 +32,7 @@ import com.sqt.lts.ui.theme.kBackGround
 import com.sqt.lts.ui.trending.trending_component.TrendingItemComponent
 
 import com.example.lts.utils.scaleSize
+import com.sqt.lts.ui.channels.data.request.ChannelRequestModel
 import com.sqt.lts.ui.channels.data.response.ChannelData
 import com.sqt.lts.ui.channels.state.ChannelFollowingState
 import com.sqt.lts.ui.channels.state.ChannelUiState
@@ -37,12 +40,17 @@ import com.sqt.lts.ui.home.enums.HomeDataEnums
 import com.sqt.lts.ui.home.event.HomeEvent
 import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelJoinModel
 import com.sqt.lts.ui.theme.LtsTheme
+import com.sqt.lts.ui.trending.data.request.TrendingRequestModel
 import com.sqt.lts.ui.trending.data.response.VideoAudio
 import com.sqt.lts.ui.trending.event.TrendingEvent
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Home(
+    category: Category?=null,
     onChannelEvent:(ChannelEvent) -> Unit,
     homeList: List<HomeResourceAndChannelJoinModel?>?=arrayListOf(),
     trendingState: TrendingState? =null,
@@ -58,6 +66,7 @@ fun Home(
 
     val listState = rememberLazyListState()
     val isPagingLoading = (categoriesState?.isLoading == true && categoriesState.categories.isNotEmpty())
+    val listForTrendingState = rememberLazyListState()
 
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo }
@@ -82,20 +91,93 @@ fun Home(
             }
     }
 
+    LaunchedEffect(category) {
+
+        when(category?.type){
+
+            SelectedType.ALL -> {
+
+
+
+                onHomeDataEvent(HomeEvent.ClearData)
+
+                onTrendingEvent(TrendingEvent.GetTrendingDataForHome(
+                    trendingRequestModel = TrendingRequestModel(
+                        isFirst = true,
+                        page = 1,
+                        displayloginuseruploaded = if(saveLoginState?.isLogin == true) 1 else 0,
+                        limit = 3,
+                    )
+                ))
+
+                onChannelEvent(ChannelEvent.GetHomeChannelData(
+                    channelRequestModel = ChannelRequestModel(
+                        isFirst = true,
+                        limit = 10,
+                        page = 1,
+                        sortColumn = "trending",
+                        sortDirection = "desc",
+                        categoryIds ="",
+                        exceptChannelIds = "",
+                        myCreatedChannel = 0,
+                        myFollowingChannel = 0
+                    )
+                ))
+
+            }
+
+            SelectedType.ANY -> {
+
+                println("API CALL TIME ${System.currentTimeMillis()}")
+
+                val categoryIds = categoriesState?.categories?.filter { it.selectedCategory == true }?.map { it.categoryid }?.joinToString(",")
+
+                onHomeDataEvent(HomeEvent.ClearData)
+
+                onTrendingEvent(TrendingEvent.GetTrendingDataForHome(
+                    trendingRequestModel = TrendingRequestModel(
+                        isFirst = true,
+                        page = 1,
+                        displayloginuseruploaded = if(saveLoginState?.isLogin == true) 1 else 0,
+                        limit = 3,
+                        categoryIds = categoryIds,
+                    )
+                ))
+
+                onChannelEvent(ChannelEvent.GetHomeChannelData(
+                    channelRequestModel = ChannelRequestModel(
+                        isFirst = true,
+                        limit = 10,
+                        page = 1,
+                        sortColumn = "trending",
+                        sortDirection = "desc",
+                        categoryIds = categoryIds,
+                        exceptChannelIds = "",
+                        myCreatedChannel = 0,
+                        myFollowingChannel = 0
+                    )
+                ))
+            }
+            null -> {
+
+            }
+        }
+    }
+
     Scaffold(containerColor = kBackGround) {
-        paddingValues -> Column(modifier = Modifier
+        paddingValues -> Column(
+        modifier = Modifier
         .padding(paddingValues)
-        .padding(vertical = 5.dp.scaleSize(), horizontal = 20.dp.scaleSize())
-        ) {
+        .padding(vertical = 5.dp.scaleSize(), horizontal = 20.dp.scaleSize())) {
         HomeCategoriesComponent(
             listState = listState,
             categoriesState = categoriesState,
             onCategoryEvent=onCategoryEvent,
-            onCategoriesClick = {
-                if(it?.type == SelectedType.ALL){
+            onCategoriesClick = { category ->
+                if(category?.type == SelectedType.ALL){
                     onCategoryEvent(CategoriesEvent.SelectAllCategories)
                 }else{
-                    onCategoryEvent(CategoriesEvent.CategorySelected(it))
+                    onCategoryEvent(CategoriesEvent.CategorySelected(category))
                 }
             }
             )

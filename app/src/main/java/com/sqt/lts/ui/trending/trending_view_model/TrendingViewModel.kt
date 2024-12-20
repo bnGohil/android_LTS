@@ -16,6 +16,7 @@ import com.sqt.lts.ui.trending.data.response.PlayListItem
 import com.sqt.lts.ui.trending.data.response.VideoAudio
 import com.sqt.lts.ui.trending.state.TrendingVideoResourceUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.launchIn
@@ -25,6 +26,9 @@ import javax.inject.Inject
 @RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class TrendingViewModel @Inject constructor(private val trendingRepository: TrendingRepository) : ViewModel() {
+
+
+    private var job : Job?=null
 
     private val _trendingHomeState = MutableStateFlow(TrendingState())
     val trendingHomeState : StateFlow<TrendingState> = _trendingHomeState
@@ -46,14 +50,14 @@ class TrendingViewModel @Inject constructor(private val trendingRepository: Tren
 
 
 
-    var currentHomeTrendingPage = 1
-    var currentCaAccountResourcePage = 1
-    var currentTrendingPage = 1
-    var currentPlayListTrendingPage = 1
+    private var currentHomeTrendingPage = 1
+    private var currentCaAccountResourcePage = 1
+    private var currentTrendingPage = 1
+    private var currentPlayListTrendingPage = 1
 
-    val videoAudioList = arrayListOf<VideoAudio?>()
-    val videoPlayAudioList = arrayListOf<VideoAudio?>()
-    val caeResourceList = arrayListOf<VideoAudio?>()
+    private val videoAudioList = arrayListOf<VideoAudio?>()
+    private val videoPlayAudioList = arrayListOf<VideoAudio?>()
+    private val caeResourceList = arrayListOf<VideoAudio?>()
 
     private val _videoPlayList = mutableListOf<PlayListItem?>()
     val videoPlayList : MutableList<PlayListItem?> = _videoPlayList
@@ -62,7 +66,7 @@ class TrendingViewModel @Inject constructor(private val trendingRepository: Tren
 
 
 
-    @RequiresApi(Build.VERSION_CODES.O)
+
      fun onEvent(event: TrendingEvent){
         when (event){
 
@@ -92,8 +96,11 @@ class TrendingViewModel @Inject constructor(private val trendingRepository: Tren
         }
     }
 
-   @RequiresApi(Build.VERSION_CODES.O)
+
    private fun getTrendingHomeData(trendingRequestModel:TrendingRequestModel?){
+
+
+       println("Video CategoryIds : ${trendingRequestModel?.categoryIds}")
 
 
 
@@ -105,7 +112,15 @@ class TrendingViewModel @Inject constructor(private val trendingRepository: Tren
 
        if(trendingRequestModel?.isFirst == false && ((trendingRequestModel.currentRecord ?: 0) >= (_trendingHomeState.value.totalRecord ?: 0))) return
 
-       trendingRepository.getResourceData(TrendingRequestModel(limit = trendingRequestModel?.limit, page = currentHomeTrendingPage)).onEach {
+       job?.cancel()
+
+       job = trendingRepository.getResourceData(
+           TrendingRequestModel(
+           displayloginuseruploaded = trendingRequestModel?.displayloginuseruploaded,
+           categoryIds = trendingRequestModel?.categoryIds,
+           limit = trendingRequestModel?.limit,
+           page = currentHomeTrendingPage
+           )).onEach {
 
            when(it){
 
@@ -128,6 +143,7 @@ class TrendingViewModel @Inject constructor(private val trendingRepository: Tren
            }
 
        }.launchIn(viewModelScope)
+
    }
 
 

@@ -5,6 +5,7 @@ import com.example.lts.utils.network.DataState
 import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import timber.log.Timber
@@ -32,5 +33,5 @@ fun <DATA, T : BaseResponse<DATA>> safeApiCallWithApiStatus(call: suspend () -> 
 //        FirebaseCrashlytics.getInstance().recordException(e)
         emit(DataState.Error(e))
     }
-}.flowOn(Dispatchers.IO)
+}.cancellable().flowOn(Dispatchers.IO)
 class ApiZeroException(message: String?) : Exception(message)

@@ -48,7 +48,6 @@ class HomeViewModel() : ViewModel(){
             is HomeEvent.GetVideoList -> {
 
                 getVideoList(event.list)
-                println("event.first is ${event.first}")
                 if(event.first == true){
                     getHomeList()
                 }else{
@@ -130,7 +129,7 @@ class HomeViewModel() : ViewModel(){
         }
 
 
-        _homeUiState.value = _homeUiState.value.copy(homeDataList =_homeList.toList())
+        _homeUiState.update { it.copy(homeDataList =_homeList.toList()) }
 
     }
 

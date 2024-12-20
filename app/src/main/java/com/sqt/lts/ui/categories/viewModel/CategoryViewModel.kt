@@ -1,6 +1,9 @@
 package com.sqt.lts.ui.categories.viewModel
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.util.fastFilter
+import androidx.compose.ui.util.fastMap
+import androidx.compose.ui.util.fastSumBy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lts.enums.PagingLoadingType
@@ -16,11 +19,16 @@ import com.sqt.lts.ui.categories.state.CategoryType
 import com.example.lts.utils.network.DataState
 import com.example.lts.utils.toggle
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -34,6 +42,9 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
 
     private val _categoryCaAccountState = MutableStateFlow(CategoriesState())
     val categoryCaAccountState : StateFlow<CategoriesState> = _categoryCaAccountState
+
+    private val _updateCategoryData = Channel<Category>()
+    val updateCategoryData = _updateCategoryData.consumeAsFlow()
 
 
 
@@ -141,8 +152,11 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
             }
 
             CategoriesEvent.SelectAllCategories -> {
-                val data = categoriesHomeArray.map { it.copy(selectedCategory = true) }
+                val data = categoriesHomeArray.map { if(it.type == SelectedType.ALL) it.copy(selectedCategory = true) else it.copy(selectedCategory = false) }
                 _categoryHomeState.update { it.copy(data) }
+                viewModelScope.launch {
+                    _updateCategoryData.send(Category(type = SelectedType.ALL))
+                }
             }
         }
     }
@@ -165,19 +179,8 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
 
 
         val list = _categoryHomeState.value.categories.map { e -> if(e.categoryid == category.categoryid) e.copy(
-            categoryname = category.categoryname,
-            any = category.any,
-            categoryid = category.categoryid,
-            selectedCategory = category.selectedCategory?.toggle(),
-            countresourcecategory = category.countresourcecategory,
-            createdby = category.createdby,
-            createdon = category.createdon,
-            isactive = category.isactive,
-            iscategoryassigned = category.iscategoryassigned,
-            longdetails = category.longdetails,
-            photo = category.photo,
-            photourl = category.photourl,
-            rownumber = category.rownumber) else e}.toList()
+            selectedCategory = category.selectedCategory?.toggle()
+        ) else e }.toList()
 
         val isSelected = list.filter {categoryData-> categoryData.type == SelectedType.ANY }.all { categoryData -> categoryData.selectedCategory == true}
 
@@ -192,9 +195,13 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
             }
         }
 
-        _categoryHomeState.value = _categoryHomeState.value.copy(categories = list)
-
         _selectedItemArray.value = _categoryHomeState.value.categories.filter { name -> name.selectedCategory == true}.toList()
+
+        _categoryHomeState.update { it.copy(categories = list) }
+
+        viewModelScope.launch {
+            _updateCategoryData.send(category)
+        }
 
     }
 
@@ -224,13 +231,15 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
   private fun getCategoryListData(categoryUiState: CategoryUiState) {
 
 
-
-
       if(categoryUiState.pagingLoadingType == PagingLoadingType.IS_LOADING){
+
           categoryCurrentPage += 1
+
       }else{
+
           categoriesHomeArray.clear()
           categoryCurrentPage = 1
+
       }
 
       if((categoryUiState.pagingLoadingType == PagingLoadingType.IS_LOADING) && (_categoryHomeState.value.totalRecord?:0) <= (categoriesHomeArray.size?:0)) return
@@ -254,42 +263,18 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
                   _categoryHomeState.value = _categoryHomeState.value.copy(isLoading = true, categories = categoriesHomeArray)
               }
               is DataState.Success -> {
-
                   if(_selectedItemArray.value.isNotEmpty()){
+                      categoriesHomeArray.filter { category -> category.categoryid in _selectedItemArray.value.map { it.categoryid } }.forEach {
+                          it.selectedCategory=true
+                     }
 
-                      for (selectedCategory in _selectedItemArray.value){
-                          dataState.data?.categoryList?.forEach {
-                              category: Category ->
-                              if(selectedCategory.categoryid == category.categoryid){
-                                  category.selectedCategory = true
-                              }
-                          }
-                      }
+                      dataState.data?.categoryList?.forEach { t -> t.selectedCategory = false }
 
-                      if(categoriesHomeArray.isEmpty()){
-                          categoriesHomeArray.add(0,Category(categoryname = "All",type = SelectedType.ALL))
-                      }
-
-                      if(dataState.data?.categoryList != null){
-
-                          dataState.data.categoryList.forEach {
-                              category ->
-                              if(category.type == null){
-                              category.type = SelectedType.ANY
-//                              category.selectedCategory = true
-                          }
-
-                          }
-
-                          categoriesHomeArray.addAll(dataState.data.categoryList)
-                      }
+                      categoriesHomeArray.addAll(dataState.data?.categoryList?: arrayListOf())
 
                   }else{
-
                       if(categoriesHomeArray.isEmpty()){
-
                           categoriesHomeArray.add(0,Category(categoryname = "All", type = SelectedType.ALL, selectedCategory = true))
-
                       }
 
                       if(dataState.data?.categoryList != null){
@@ -298,7 +283,7 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
                               category ->
                               if(category.type == null) {
                                 category.type = SelectedType.ANY
-                                category.selectedCategory = true
+                                category.selectedCategory = false
                               }
                           }
 
@@ -530,4 +515,15 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
     }
 
 
-}
+    data class Item(val id: Int, val value: String)
+
+    private fun findItemsNotInSecondArray(firstArray: List<Category>, secondArray: List<Category>): List<Category> {
+        val secondIds = secondArray.map { it.categoryid } // Extract IDs from the second array
+        return firstArray.filter { it.categoryid in secondIds }
+    }
+
+
+
+
+
+    }
