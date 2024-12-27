@@ -1,8 +1,14 @@
 package com.example.lts.ui.trending.presentation
 import android.annotation.SuppressLint
+import android.content.ClipData
+
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -25,6 +31,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
@@ -35,11 +42,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat.startActivities
+import androidx.core.content.ContextCompat.startActivity
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.sqt.lts.ui.channels.event.ChannelEvent
@@ -59,22 +71,27 @@ import com.sqt.lts.ui.theme.kWhite
 import com.example.lts.utils.extainstion.kLightTextColorW600FS20
 import com.example.lts.utils.extainstion.kPrimaryColorW400FS15
 import com.example.lts.utils.extainstion.kWhiteW300FS12
+import com.example.lts.utils.extainstion.kWhiteW400FS13
 import com.example.lts.utils.extainstion.kWhiteW500FS17
 import com.example.lts.utils.network.DataState
 import com.example.lts.utils.scaleSize
 import com.sqt.lts.custom_component.CustomNetworkImageView
 import com.sqt.lts.ui.channels.state.ChannelFollowingState
 import com.sqt.lts.ui.theme.LtsTheme
+import com.sqt.lts.ui.theme.kLightTextColor
 import com.sqt.lts.ui.theme.kSecondaryColor
 import com.sqt.lts.ui.trending.data.request.TrendingRequestModel
 import com.sqt.lts.ui.trending.data.response.PlayListItem
+import com.sqt.lts.ui.trending.data.response.TrendingLikeAndDisLikeModel
 import com.sqt.lts.ui.trending.data.response.VideoAudio
 import com.sqt.lts.ui.trending.event.TrendingEvent
+import com.sqt.lts.ui.trending.state.LikeAndDislikeUiState
 import com.sqt.lts.ui.trending.state.TrendingVideoResourceUiState
 
 
-@SuppressLint("ShowToast")
-@ExperimentalLayoutApi
+
+@SuppressLint("QueryPermissionsNeeded")
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TrendingVideoDetail(
     id: Int?=null,
@@ -84,8 +101,9 @@ fun TrendingVideoDetail(
     onTrendingEvent: (TrendingEvent) -> Unit,
     onChannelEvent: (ChannelEvent) -> Unit,
     trendingVideoResourceUiState:TrendingVideoResourceUiState?=null,
-    navController: NavHostController
-    ) {
+    navController: NavHostController,
+    likeAndDislikeUiState: LikeAndDislikeUiState?=null
+) {
 
     val isChannelLoading = channelDataState?.isLoading == true
 
@@ -109,6 +127,7 @@ fun TrendingVideoDetail(
         ))
     }
 
+    val clipboardManager: ClipboardManager = LocalClipboardManager.current
 
 
 
@@ -116,9 +135,9 @@ fun TrendingVideoDetail(
     val isLoading = trendingVideoResourceUiState?.isLoading == true
     val isPlayListLoading = trendingPlayListState?.isLoading == true && trendingPlayListState.videoAudioList?.isEmpty() == true
     val isPagingTrendingLoading = trendingPlayListState?.isLoading == true && trendingPlayListState.videoAudioList?.isNotEmpty() == true
-    var data = trendingVideoResourceUiState?.data
+    val data = trendingVideoResourceUiState?.data
 
-    var followAndUnFollow = remember { mutableIntStateOf(0) }
+    val followAndUnFollow = remember { mutableIntStateOf(0) }
 
     val context = LocalContext.current
 
@@ -173,26 +192,11 @@ fun TrendingVideoDetail(
 
                     }
                 }
-
-
-                println("++++++++++++++++++ SUCCESSFULLY RESPONSE DATA ++++++++++++++++++ ${channelDataState.channelFollowingType} value : ${followAndUnFollow.intValue}")
             }
             null -> {
 
             }
         }
-
-//        when(channelDataState?.channelFollowingType){
-//            FollowingType.FOLLOW -> {
-//                followAndUnFollow.value = 0
-//            }
-//            FollowingType.UNFOLLOW -> {
-//                followAndUnFollow.value = 1
-//            }
-//            null -> {
-//
-//            }
-//        }
 
     }
 
@@ -202,12 +206,12 @@ fun TrendingVideoDetail(
     val isCheckForRowBtn = if(isLoading) Modifier
         .size(50.dp)
         .padding(3.dp)
-        .clip(CircleShape) else Modifier
+        .clip(RoundedCornerShape(10)) else Modifier
 
-    Scaffold(modifier = Modifier.background(kBackGround)) {
+    Scaffold(modifier = Modifier.background(kBackGround)) { paddingValues ->
         Column(
             Modifier
-                .padding(it)
+                .padding(paddingValues)
                 .background(kBackGround)
                 .fillMaxHeight()) {
             ShimmerEffectBox(
@@ -218,8 +222,6 @@ fun TrendingVideoDetail(
             ) {
                 ExoPlayerPlaylist(
                     url = url.value,
-//                    clickType = clickType.value,
-//                    list = list,
                     onLoading = {
                         isVideoLoading.value = it
                         println("isVideoLoading : ${isVideoLoading.value}")
@@ -246,56 +248,145 @@ fun TrendingVideoDetail(
                         }
                         Spacer(modifier = Modifier.height(10.dp.scaleSize()))
 
-                            Row() {
-                                ShimmerEffectBox(
-                                    isShow = isLoading,
-                                    modifier = isCheckForRowBtn
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                            ShimmerEffectBox(
+                                isShow = isLoading,
+                                modifier = isCheckForRowBtn
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(kCardBackgroundColor)
+                                        .padding(horizontal = 10.dp, vertical = 5.dp)
                                 ) {
-                                    IconButton(
-                                        colors = IconButtonDefaults.iconButtonColors(containerColor = kCardBackgroundColor),
-                                        onClick = { /*TODO*/ }) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.like),
-                                            contentDescription = "like",
-                                            tint = kWhite
-                                        )
-                                    }
+                                    Icon(
+                                        painterResource(if(data?.islike == 0) R.drawable.like else R.drawable.likefilled),
+                                        modifier = Modifier.clickable {
+                                            onTrendingEvent(TrendingEvent.UpdateTrendingLikeAndDisLikeDetail(
+                                                trendingLikeAndDisLikeModel = TrendingLikeAndDisLikeModel(
+                                                    resourceid = data?.resourceid?:0,
+                                                    isdislike = false,
+                                                    islike = true
+                                                )
+                                            ))
+                                        },
+                                        contentDescription = "like", tint = kWhite
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(
+                                        modifier = Modifier
+                                            .height(18.dp.scaleSize())
+                                            .width(1.dp.scaleSize())
+                                            .background(kLightTextColor)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        if (data?.totallike != null) data.totallike.toString() else "0",
+                                        style = TextStyle.Default.kWhiteW500FS17()
+                                    )
                                 }
-                                ShimmerEffectBox(
-                                    isShow = isLoading,
-                                    modifier = isCheckForRowBtn
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            ShimmerEffectBox(
+                                isShow = isLoading,
+                                modifier = isCheckForRowBtn
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(kCardBackgroundColor)
+                                        .padding(horizontal = 10.dp, vertical = 5.dp)
                                 ) {
-                                    IconButton(
-                                        colors = IconButtonDefaults.iconButtonColors(containerColor = kCardBackgroundColor),
-                                        onClick = { /*TODO*/ }) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.dislike),
-                                            contentDescription = "dislike",
-                                            tint = kWhite
-                                        )
-                                    }
+                                    Icon(
+                                        painterResource(if(data?.isdislike == 0) R.drawable.dislike else R.drawable.dislikefilled),
+                                        modifier = Modifier.clickable {
+                                            onTrendingEvent(TrendingEvent.UpdateTrendingLikeAndDisLikeDetail(
+                                                trendingLikeAndDisLikeModel = TrendingLikeAndDisLikeModel(
+                                                    resourceid = data?.resourceid?:0,
+                                                    isdislike = true,
+                                                    islike = false
+                                                )
+                                            ))
+                                        },
+                                        contentDescription = "Dislike",
+                                        tint = kWhite,
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(
+                                        modifier = Modifier
+                                            .height(18.dp.scaleSize())
+                                            .width(1.dp.scaleSize())
+                                            .background(kLightTextColor)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(if (data?.totaldislike != null) data.totaldislike.toString() else "0", style = TextStyle.Default.kWhiteW500FS17())
                                 }
-                                ShimmerEffectBox(
-                                    isShow = isLoading,
-                                    modifier = isCheckForRowBtn
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            ShimmerEffectBox(
+                                isShow = isLoading,
+                                modifier = isCheckForRowBtn
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(kCardBackgroundColor)
+                                        .padding(horizontal = 10.dp, vertical = 5.dp)
                                 ) {
-                                    IconButton(
-                                        colors = IconButtonDefaults.iconButtonColors(containerColor = kCardBackgroundColor),
-                                        onClick = { /*TODO*/ }) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.share),
-                                            contentDescription = "share",
-                                            tint = kWhite
-                                        )
-                                    }
+                                    Icon(
+                                        painterResource(R.drawable.share),
+                                        modifier = Modifier.clickable {
+
+//                                            val urlToShare = "https://qa.listentoseniors.com/video-audio/${data?.resourceid}"
+                                            val urlToShare = "https://qa.listentoseniors.com/video-audio/${data?.resourceid}?utm_source=app&utm_medium=share"
+
+                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(Intent.EXTRA_TEXT, urlToShare)
+                                            }
+
+                                            if (shareIntent.resolveActivity(context.packageManager) != null) {
+                                                context.startActivity(Intent.createChooser(shareIntent, "Share URL via"))
+                                            }
+
+                                            onTrendingEvent(TrendingEvent.SharedTrendingData(resourceId = data?.resourceid?:0))
+
+
+                                        },
+                                        contentDescription = "Dislike",
+                                        tint = kWhite
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(
+                                        modifier = Modifier
+                                            .height(18.dp.scaleSize())
+                                            .width(1.dp.scaleSize())
+                                            .background(kLightTextColor)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        if (data?.totalshare != null) data.totalshare.toString() else "0",
+                                        style = TextStyle.Default.kWhiteW500FS17()
+                                    )
                                 }
-                                ShimmerEffectBox(
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+
+                            ShimmerEffectBox(
                                     isShow = isLoading,
                                     modifier = isCheckForRowBtn
                                 ) {
                                     IconButton(
                                         colors = IconButtonDefaults.iconButtonColors(containerColor = kCardBackgroundColor),
-                                        onClick = { /*TODO*/ }) {
+                                        onClick = {
+                                            clipboardManager.setText(AnnotatedString("https://qa.listentoseniors.com/video-audio/${data?.resourceid}"))
+                                        }) {
                                         Icon(
                                             painter = painterResource(id = R.drawable.copy),
                                             contentDescription = "copy",
@@ -303,7 +394,71 @@ fun TrendingVideoDetail(
                                         )
                                     }
                                 }
-                            }
+
+
+
+                        }
+
+//                            Row() {
+//                                ShimmerEffectBox(
+//                                    isShow = isLoading,
+//                                    modifier = isCheckForRowBtn
+//                                ) {
+//                                    IconButton(
+//                                        colors = IconButtonDefaults.iconButtonColors(containerColor = kCardBackgroundColor),
+//                                        onClick = { /*TODO*/ }) {
+//                                        Row() {
+//                                            Icon(painter = painterResource(id = R.drawable.like), contentDescription = "like", tint = kWhite)
+//                                            Spacer(Modifier.width(10.dp.scaleSize()))
+//                                            Spacer(Modifier.background(kLightTextColor).height(15.dp).width(1.dp))
+//                                            Spacer(Modifier.width(10.dp.scaleSize()))
+//                                            Text("1", style = TextStyle.Default.kWhiteW400FS13())
+//                                        }
+//                                    }
+//                                }
+//                                ShimmerEffectBox(
+//                                    isShow = isLoading,
+//                                    modifier = isCheckForRowBtn
+//                                ) {
+//                                    IconButton(
+//                                        colors = IconButtonDefaults.iconButtonColors(containerColor = kCardBackgroundColor),
+//                                        onClick = { /*TODO*/ }) {
+//                                        Icon(
+//                                            painter = painterResource(id = R.drawable.dislike),
+//                                            contentDescription = "dislike",
+//                                            tint = kWhite
+//                                        )
+//                                    }
+//                                }
+//                                ShimmerEffectBox(
+//                                    isShow = isLoading,
+//                                    modifier = isCheckForRowBtn
+//                                ) {
+//                                    IconButton(
+//                                        colors = IconButtonDefaults.iconButtonColors(containerColor = kCardBackgroundColor),
+//                                        onClick = { /*TODO*/ }) {
+//                                        Icon(
+//                                            painter = painterResource(id = R.drawable.share),
+//                                            contentDescription = "share",
+//                                            tint = kWhite
+//                                        )
+//                                    }
+//                                }
+//                                ShimmerEffectBox(
+//                                    isShow = isLoading,
+//                                    modifier = isCheckForRowBtn
+//                                ) {
+//                                    IconButton(
+//                                        colors = IconButtonDefaults.iconButtonColors(containerColor = kCardBackgroundColor),
+//                                        onClick = { /*TODO*/ }) {
+//                                        Icon(
+//                                            painter = painterResource(id = R.drawable.copy),
+//                                            contentDescription = "copy",
+//                                            tint = kWhite
+//                                        )
+//                                    }
+//                                }
+//                            }
 
                         Spacer(modifier = Modifier.height(10.dp.scaleSize()))
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -388,7 +543,7 @@ fun TrendingVideoDetail(
 
                                     }) {
                                     Text(
-                                        text = isChangeText(followAndUnFollow.value == 0),
+                                        text = isChangeText(followAndUnFollow.intValue == 0),
                                         style = TextStyle.Default.kPrimaryColorW400FS15().copy(color = kWhite)
                                     )
                                 }
@@ -494,12 +649,16 @@ fun TrendingVideoDetail(
                             .height(200.dp)
                             .padding(5.dp) else Modifier,
                         content = {
-                            VideoComponent(
-                                onWatchClick = {},
-                                trendingItem = trendingPlayListState?.videoAudioList?.get(it), naviController = navController, onClick = {
-                                clickType.value = ClickVideo.PLAYLIST
-                                onTrendingEvent(TrendingEvent.GetResourceVideoDetail(trendingPlayListState?.videoAudioList?.get(it)?.resourceid))
-                            })
+                            if(!isLoading && !isPlayListLoading){
+                                VideoComponent(
+                                    onWatchClick = {},
+                                    trendingItem = trendingPlayListState?.videoAudioList?.get(it),
+                                    naviController = navController, onClick = {
+                                        clickType.value = ClickVideo.PLAYLIST
+                                        onTrendingEvent(TrendingEvent.GetResourceVideoDetail(trendingPlayListState?.videoAudioList?.get(it)?.resourceid))
+                                    })
+                            }
+
                         }
                     )
                 }
@@ -586,7 +745,6 @@ fun TrendingVideoDetail(
 
 
 
-@OptIn(ExperimentalLayoutApi::class)
 @Preview(backgroundColor = 1L, showBackground = true)
 @Composable
 private fun TrendingVideoDetailPreview() {

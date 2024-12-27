@@ -57,7 +57,7 @@ fun FollowingElementComponent(
     Column(modifier = Modifier
         .padding(5.dp)
         .clickable {
-            navigationHostController.navigate(FollowingDetailRoute)
+            navigationHostController.navigate(FollowingDetailRoute(channelId = channel?.channelid))
         }) {
         Row(
             verticalAlignment = Alignment.CenterVertically

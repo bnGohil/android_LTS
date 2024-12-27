@@ -1,10 +1,9 @@
-package com.example.lts.datasource.remote.utils
+package com.sqt.lts.datasource.remote.utils
 
 import com.example.lts.base.BaseResponse
 import com.example.lts.utils.network.DataState
 import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn

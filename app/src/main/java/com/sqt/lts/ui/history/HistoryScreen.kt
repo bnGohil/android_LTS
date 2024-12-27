@@ -178,16 +178,16 @@ fun HistoryScreen(
                     VideoComponent(trendingItem = historyAndWatchListUiState?.videoAudioList?.get(it), naviController = navHostController,
                         onWatchClick = {
 
-                            if(historyAndWatchListUiState?.videoAudioList[it]?.resourceid == null) return@VideoComponent
+                            if(it?.resourceid == null) return@VideoComponent
 
-                            when(historyAndWatchListUiState.videoAudioList[it]?.isaddedinwatchlist){
+                            when(it.isaddedinwatchlist){
 
                                 0->{
-                                    onHistoryAndWatchListEvent(HistoryAndWatchListEvent.AddWatchList(historyAndWatchListUiState.videoAudioList[it]?.resourceid, type = data?.navigationDrawer))
+                                    onHistoryAndWatchListEvent(HistoryAndWatchListEvent.AddWatchList(it.resourceid, type = data?.navigationDrawer))
                                 }
 
                                 1->{
-                                    onHistoryAndWatchListEvent(HistoryAndWatchListEvent.RemoveWatchList(historyAndWatchListUiState.videoAudioList[it]?.resourceid, type = data?.navigationDrawer))
+                                    onHistoryAndWatchListEvent(HistoryAndWatchListEvent.RemoveWatchList(it.resourceid, type = data?.navigationDrawer))
                                 }
 
                             }

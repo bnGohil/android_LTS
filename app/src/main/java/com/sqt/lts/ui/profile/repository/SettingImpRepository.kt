@@ -3,7 +3,7 @@ package com.sqt.lts.ui.profile.repository
 import android.content.Context
 import android.webkit.MimeTypeMap
 import com.sqt.lts.datasource.remote.RestApiService
-import com.example.lts.datasource.remote.utils.safeApiCallWithApiStatus
+import com.sqt.lts.datasource.remote.utils.safeApiCallWithApiStatus
 import com.sqt.lts.repository.SettingRepository
 import com.sqt.lts.ui.profile.request.UserDetailUpdateRequestModel
 import okhttp3.MediaType.Companion.toMediaTypeOrNull

@@ -15,6 +15,8 @@ import com.sqt.lts.ui.channels.state.ChannelDetailUiState
 import com.sqt.lts.ui.channels.state.ChannelFollowingState
 import com.sqt.lts.ui.channels.state.ChannelUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,9 +24,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 @HiltViewModel
 class ChannelViewModel @Inject constructor(private val channelRepository: ChannelRepository) : ViewModel(){
+
+
+    private var homeChannelJob : Job?=null
 
     private val _getHomeChannelResponse = MutableStateFlow(ChannelUiState())
     val getHomeChannelResponse : StateFlow<ChannelUiState> = _getHomeChannelResponse
@@ -60,17 +66,17 @@ class ChannelViewModel @Inject constructor(private val channelRepository: Channe
 
 
 
-    var currentHomeChannelPage = 1
+    private var currentHomeChannelPage = 1
 
-    var currentChannelPage = 1
+    private var currentChannelPage = 1
 
-    var currentCaAccountChannelPage = 1
+    private var currentCaAccountChannelPage = 1
 
-    var currentFollowingChannelPage = 1
+    private var currentFollowingChannelPage = 1
 
     val channelList = arrayListOf<ChannelData?>()
-    val channelCaAccountList = arrayListOf<ChannelData?>()
-    val channelFollowingList = arrayListOf<ChannelData?>()
+    private val channelCaAccountList = arrayListOf<ChannelData?>()
+    private val channelFollowingList = arrayListOf<ChannelData?>()
 
     fun onEvent(channelEvent: ChannelEvent){
 
@@ -79,11 +85,7 @@ class ChannelViewModel @Inject constructor(private val channelRepository: Channe
                 getHomeChannelData(channelEvent.channelRequestModel)
             }
 
-            is ChannelEvent.ChangeStatusForFollowAndUnFollow -> {
-
-//                followAnnUnFollow(channelEvent.channelData.channelName?:"")
-
-            }
+            is ChannelEvent.ChangeStatusForFollowAndUnFollow -> {}
 
             is ChannelEvent.SelectedChannelTabData -> {
 
@@ -147,12 +149,12 @@ class ChannelViewModel @Inject constructor(private val channelRepository: Channe
 
         if(channelRequestModel?.isFirst == true){
             currentHomeChannelPage = 1
-
         }
 
         if(channelRequestModel?.isFirst == false && (channelRequestModel.currentRecord?:0) >= _getHomeChannelResponse.value.totalCount) return
 
-        channelRepository.getChannelData(channelRequestModel = ChannelRequestModel(
+        homeChannelJob?.cancel()
+        homeChannelJob = channelRepository.getChannelData(channelRequestModel = ChannelRequestModel(
 
             page = currentHomeChannelPage,
 
@@ -299,23 +301,28 @@ class ChannelViewModel @Inject constructor(private val channelRepository: Channe
 
     private fun followChannel(channelId: Int){
 
-        channelRepository.followChannel(channelId).onEach {
+        channelRepository.followChannel(channelId).onEach { dataState ->
 
-            when(it){
+            println("followChannel IS $dataState")
+
+            when(dataState){
 
                 is DataState.Error -> {
-                    _followUnFollowAppResponse.emit(ChannelFollowingState(errorMsg = it.exception.message, isLoading = false,
-                        data = it,
-                        channelFollowingType = FollowingType.FOLLOW))
+                    _followUnFollowAppResponse.emit(ChannelFollowingState(
+                        errorMsg = dataState.exception.message,
+                        isLoading = false,
+                        data = dataState,
+                        channelFollowingType = FollowingType.FOLLOW
+                    ))
                 }
 
                 is DataState.Loading -> {
-                    _followUnFollowAppResponse.emit(ChannelFollowingState(isLoading = true,data = it))
+                    _followUnFollowAppResponse.emit(ChannelFollowingState(isLoading = true,data = dataState))
                 }
 
                 is DataState.Success -> {
-
-                    _followUnFollowAppResponse.emit(ChannelFollowingState(isLoading = false, data = it, channelFollowingType = FollowingType.FOLLOW, channelId = channelId))
+                    _followUnFollowAppResponse.emit(ChannelFollowingState(isLoading = false, data = dataState, channelFollowingType = FollowingType.FOLLOW, channelId = channelId))
+                    _channelDetailAppResponse.update { it.copy(channelData = it.channelData?.copy(isfollowchannel = 1)) }
                     updateChannelFollowUnFollow(channelId =channelId, followingType = FollowingType.FOLLOW)
 
                 }
@@ -327,23 +334,28 @@ class ChannelViewModel @Inject constructor(private val channelRepository: Channe
 
     private fun unFollowChannel(channelId: Int){
 
-        channelRepository.unfollowChannel(channelId).onEach {
+        channelRepository.unfollowChannel(channelId).onEach { dataState ->
 
-            when(it){
+
+            println("unfollowChannel IS $dataState")
+
+            when(dataState){
+
 
                 is DataState.Error -> {
-                    _followUnFollowAppResponse.emit(ChannelFollowingState(errorMsg = it.exception.message,
-                        data = it,
+                    _followUnFollowAppResponse.emit(ChannelFollowingState(errorMsg = dataState.exception.message,
+                        data = dataState,
                         isLoading = false, channelFollowingType = FollowingType.UNFOLLOW))
                 }
 
                 is DataState.Loading -> {
-                    _followUnFollowAppResponse.emit(ChannelFollowingState(isLoading = true,data = it))
+                    _followUnFollowAppResponse.emit(ChannelFollowingState(isLoading = true,data = dataState))
                 }
 
                 is DataState.Success -> {
                     updateChannelFollowUnFollow(channelId =channelId, followingType = FollowingType.UNFOLLOW)
-                    _followUnFollowAppResponse.emit(ChannelFollowingState(isLoading = false, data = it, channelFollowingType = FollowingType.UNFOLLOW, channelId = channelId))
+                    _channelDetailAppResponse.update { it.copy(channelData = it.channelData?.copy(isfollowchannel = 0)) }
+                    _followUnFollowAppResponse.emit(ChannelFollowingState(isLoading = false, data = dataState, channelFollowingType = FollowingType.UNFOLLOW, channelId = channelId))
                 }
             }
         }.launchIn(viewModelScope)
@@ -482,13 +494,13 @@ class ChannelViewModel @Inject constructor(private val channelRepository: Channe
             when(it){
 
                 is DataState.Error -> {
-                    _channelDetailAppResponse.value = _channelDetailAppResponse.value.copy(isLoading = false, exception = it.exception)
+                    _channelDetailAppResponse.value = _channelDetailAppResponse.value.copy(isLoading = false, exception = it.exception, channelDataState = it)
                 }
                 DataState.Loading -> {
-                    _channelDetailAppResponse.value = _channelDetailAppResponse.value.copy(isLoading = true)
+                    _channelDetailAppResponse.value = _channelDetailAppResponse.value.copy(isLoading = true,channelDataState = it)
                 }
                 is DataState.Success -> {
-                    _channelDetailAppResponse.value = _channelDetailAppResponse.value.copy(isLoading = false, channelData = it.data, message = it.message)
+                    _channelDetailAppResponse.value = _channelDetailAppResponse.value.copy(isLoading = false, channelData = it.data, message = it.message,channelDataState = it)
                 }
             }
 

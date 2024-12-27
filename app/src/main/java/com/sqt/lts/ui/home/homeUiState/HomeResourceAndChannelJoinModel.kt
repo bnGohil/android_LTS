@@ -11,5 +11,5 @@ data class HomeResourceAndChannelJoinModel(
 )
 
 data class HomeResourceAndChannelUiState(
-    val homeDataList : List<HomeResourceAndChannelJoinModel?> = arrayListOf<HomeResourceAndChannelJoinModel?>()
+    var homeDataList : List<HomeResourceAndChannelJoinModel?> = arrayListOf<HomeResourceAndChannelJoinModel?>()
 )

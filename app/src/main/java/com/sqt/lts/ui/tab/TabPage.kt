@@ -55,6 +55,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.lts.base.BaseCommonResponseModel
 import com.example.lts.ui.categories.data.response.Category
 import com.sqt.lts.navigation.route.CaAccountRoute
 import com.sqt.lts.navigation.route.CreateChannelRoute
@@ -71,7 +72,7 @@ import com.sqt.lts.ui.categories.state.CategoriesState
 import com.sqt.lts.ui.categories.state.CategoryType
 import com.sqt.lts.ui.channels.event.ChannelEvent
 import com.sqt.lts.ui.channels.presentation.Channels
-import com.example.lts.ui.home.Home
+import com.sqt.lts.ui.home.Home
 import com.example.lts.ui.profile.Profile
 import com.example.lts.ui.sharedPreferences.data.SaveLoginState
 import com.example.lts.ui.sharedPreferences.event.SharedPreferencesEvents
@@ -88,16 +89,21 @@ import com.example.lts.ui.trending.state.TrendingState
 import com.example.lts.utils.extainstion.kPrimaryColorW400FS15
 import com.example.lts.utils.extainstion.kPrimaryColorW500FS15
 import com.example.lts.utils.extainstion.kWhiteW500FS17
+import com.example.lts.utils.network.DataState
 import com.example.lts.utils.scaleSize
 import com.sqt.lts.custom_component.CustomNetworkImageView
+import com.sqt.lts.ui.channels.data.request.ChannelRequestModel
 import com.sqt.lts.ui.channels.data.response.ChannelData
 import com.sqt.lts.ui.channels.state.ChannelFollowingState
 import com.sqt.lts.ui.channels.state.ChannelUiState
+import com.sqt.lts.ui.history.event.HistoryAndWatchListEvent
 import com.sqt.lts.ui.home.enums.HomeDataEnums
 import com.sqt.lts.ui.home.event.HomeEvent
 import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelJoinModel
 import com.sqt.lts.ui.profile.state.UserDetailGetState
+import com.sqt.lts.ui.tab.state.SelectedTabAndSearch
 import com.sqt.lts.ui.theme.LtsTheme
+import com.sqt.lts.ui.trending.data.request.TrendingRequestModel
 import com.sqt.lts.ui.trending.data.response.VideoAudio
 import com.sqt.lts.ui.trending.event.TrendingEvent
 import com.sqt.lts.utils.enums.ChannelUpdateNotUpdateType
@@ -107,28 +113,31 @@ import kotlinx.coroutines.launch
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TabPage(
-    homeList: List<HomeResourceAndChannelJoinModel?>?=arrayListOf(),
+    homeList: List<HomeResourceAndChannelJoinModel?>? = arrayListOf(),
     navHostController: NavHostController,
-    onCategoryEvent:(CategoriesEvent) -> Unit,
-    onHomeDataEvent:(HomeEvent) -> Unit,
-    onChannelEvent:(ChannelEvent) -> Unit,
-    onTrendingEvent:(TrendingEvent) -> Unit,
-    categoriesHomeState: CategoriesState? =null,
-    categoriesState: CategoriesState? =null,
-    categoryForTrendingState: CategoriesState? =null,
-    channelHomeUiState: ChannelUiState? =null,
-    channelUiState: ChannelUiState? =null,
-    userDetailUiState: UserDetailGetState? =null,
-    trendingHomeState: TrendingState? =null,
-    trendingState: TrendingState? =null,
-    tabState: TabState? =null,
+    onCategoryEvent: (CategoriesEvent) -> Unit,
+    onHomeDataEvent: (HomeEvent) -> Unit,
+    onChannelEvent: (ChannelEvent) -> Unit,
+    onTrendingEvent: (TrendingEvent) -> Unit,
+    categoriesHomeState: CategoriesState? = null,
+    categoriesState: CategoriesState? = null,
+    categoryForTrendingState: CategoriesState? = null,
+    channelHomeUiState: ChannelUiState? = null,
+    channelUiState: ChannelUiState? = null,
+    userDetailUiState: UserDetailGetState? = null,
+    trendingHomeState: TrendingState? = null,
+    trendingState: TrendingState? = null,
+    tabState: TabState? = null,
     onTabEvent: (TabEvent) -> Unit,
-    saveLoginState: SaveLoginState?=null,
-    selectedTab:CategoryType?=null,
-    category: Category?=null,
-    channelDataState:ChannelFollowingState?=null,
-    onSharedPreferencesEvent:(SharedPreferencesEvents) -> Unit,
-
+    saveLoginState: SaveLoginState? = null,
+    selectedTab: CategoryType? = null,
+    selectedCategoryForHome: Category? = null,
+    selectedCategoriesForTrending: Category? = null,
+    channelDataState: ChannelFollowingState? = null,
+    selectedTabAndSearch: SelectedTabAndSearch? = null,
+    onSharedPreferencesEvent: (SharedPreferencesEvents) -> Unit,
+    onHistoryAndWatchListEvent: (HistoryAndWatchListEvent) -> Unit,
+    addAndRemoveWatchListAppResponse: DataState<BaseCommonResponseModel.Data?>? =null,
     ) {
 
 
@@ -145,7 +154,7 @@ fun TabPage(
     var openAlertDialog by remember { mutableStateOf(false) }
 
 
-
+    val categoryIds = categoriesState?.categories?.filter { it.selectedCategory == true }?.map { it.categoryid }?.joinToString(",")
 
 
     if(openAlertDialog){
@@ -203,7 +212,9 @@ fun TabPage(
                 ) {
                     CustomNetworkImageView(
                         imagePath = userDetailUiState?.data?.photourl,
-                        modifier = Modifier.size(100.dp.scaleSize()).clip(CircleShape),
+                        modifier = Modifier
+                            .size(100.dp.scaleSize())
+                            .clip(CircleShape),
                         contentScale = ContentScale.FillBounds
                     )
                     Spacer(modifier = Modifier.height(15.dp.scaleSize()))
@@ -243,26 +254,52 @@ fun TabPage(
                                         }
 
                                         NavigationDrawer.CREATE_CHANNEL -> {
-                                            navHostController.navigate(CreateChannelRoute(channelUpdateNotUpdateType = ChannelUpdateNotUpdateType.CHANNEL_NOT_UPDATE))
+                                            navHostController.navigate(
+                                                CreateChannelRoute(
+                                                    channelUpdateNotUpdateType = ChannelUpdateNotUpdateType.CHANNEL_NOT_UPDATE
+                                                )
+                                            )
                                         }
 
                                         NavigationDrawer.HISTORY -> {
-                                            navHostController.navigate(HistoryAndWatchlistRoute(title = "History", navigationDrawer = it.navigationDrawer))
+                                            navHostController.navigate(
+                                                HistoryAndWatchlistRoute(
+                                                    title = "History",
+                                                    navigationDrawer = it.navigationDrawer
+                                                )
+                                            )
                                         }
 
                                         NavigationDrawer.WATCHLIST -> {
-                                            navHostController.navigate(HistoryAndWatchlistRoute(title = "Watchlist", navigationDrawer = it.navigationDrawer))
+                                            navHostController.navigate(
+                                                HistoryAndWatchlistRoute(
+                                                    title = "Watchlist",
+                                                    navigationDrawer = it.navigationDrawer
+                                                )
+                                            )
                                         }
 
                                         NavigationDrawer.PRIVACY_POLICY -> {
-                                            navHostController.navigate(WebViewRoute(title = "Privacy-Policy", url = "https://qa.listentoseniors.com/privacy-policy"))
+                                            navHostController.navigate(
+                                                WebViewRoute(
+                                                    title = "Privacy-Policy",
+                                                    url = "https://qa.listentoseniors.com/privacy-policy"
+                                                )
+                                            )
                                         }
 
                                         NavigationDrawer.TERM_CONDITION -> {
-                                            navHostController.navigate(WebViewRoute(title = "Terms-Conditions", url = "https://qa.listentoseniors.com/terms-conditions"))
+                                            navHostController.navigate(
+                                                WebViewRoute(
+                                                    title = "Terms-Conditions",
+                                                    url = "https://qa.listentoseniors.com/terms-conditions"
+                                                )
+                                            )
                                         }
 
-                                        NavigationDrawer.LOGOUT -> { openAlertDialog = true }
+                                        NavigationDrawer.LOGOUT -> {
+                                            openAlertDialog = true
+                                        }
 
                                         null -> TODO()
                                     }
@@ -309,16 +346,16 @@ fun TabPage(
                                 }
                             }
                         } },
-
                     navHostController = navHostController,
-
+                    selectedTabEvent = onTabEvent
                 )
                      },
        bottomBar = {CustomMainBottomNavigationBar(onTabEvent = onTabEvent, state = tabState, onCategoryEvent = onCategoryEvent)}) {
        paddingValues -> Column(modifier = Modifier.padding(paddingValues)) {
        ReturnScreens(
+           selectedTabAndSearch=selectedTabAndSearch,
            saveLoginState = saveLoginState,
-           category = category,
+           selectedCategoryForHome = selectedCategoryForHome,
            categoriesState = categoriesState,
            userDetailUiState = userDetailUiState,
            channelDataState=channelDataState,
@@ -335,7 +372,10 @@ fun TabPage(
            onChannelEvent = onChannelEvent,
            onTrendingEvent = onTrendingEvent,
            channelUiState = channelUiState,
-           trendingState = trendingState
+           trendingState = trendingState,
+           selectedCategoriesForTrending = selectedCategoriesForTrending,
+           onHistoryAndWatchListEvent = onHistoryAndWatchListEvent,
+           addAndRemoveWatchListAppResponse = addAndRemoveWatchListAppResponse
        )
    }
    }
@@ -349,8 +389,6 @@ fun TabPage(
 private fun TabPagePreview() {
     LtsTheme {
         TabPage(
-            navHostController = rememberNavController(),
-            onCategoryEvent = {},
             homeList = listOf<HomeResourceAndChannelJoinModel>(
 
 
@@ -396,6 +434,11 @@ private fun TabPagePreview() {
 
 
                 ),
+            navHostController = rememberNavController(),
+            onCategoryEvent = {},
+            onHomeDataEvent = {},
+            onChannelEvent = {},
+            onTrendingEvent = {},
             tabState = TabState(
                 selectedTab = BottomNavBarItem.home,
                 tabList = arrayListOf(
@@ -405,12 +448,12 @@ private fun TabPagePreview() {
                     BottomNavBarItem.trending,
                 )
             ),
-            onHomeDataEvent = {},
-            onChannelEvent = {},
-            onTrendingEvent = {},
             onTabEvent = {},
+            onSharedPreferencesEvent = {},
+            onHistoryAndWatchListEvent = {},
+//            addAndRemoveWatchListAppResponse = addAndRemoveWatchListAppResponse.value,
 
-        ) {}
+        )
     }
 }
 
@@ -418,8 +461,11 @@ private fun TabPagePreview() {
 @Composable
 fun ReturnScreens(
     saveLoginState: SaveLoginState? =null,
-    category: Category?=null,
+    addAndRemoveWatchListAppResponse: DataState<BaseCommonResponseModel.Data?>? =null,
+    selectedCategoriesForTrending: Category?=null,
+    selectedCategoryForHome: Category?=null,
     userDetailUiState: UserDetailGetState? =null,
+    selectedTabAndSearch: SelectedTabAndSearch? = null,
     onTrendingEvent:(TrendingEvent) -> Unit,
     selectedTab:CategoryType?=null,
     homeList: List<HomeResourceAndChannelJoinModel?>?=arrayListOf(),
@@ -435,6 +481,7 @@ fun ReturnScreens(
     onCategoryEvent:(CategoriesEvent) -> Unit,
     categoriesHomeState: CategoriesState? =null,
     categoriesState: CategoriesState? =null,
+    onHistoryAndWatchListEvent:(HistoryAndWatchListEvent) -> Unit,
     channelDataState:ChannelFollowingState?=null,
     ){
 
@@ -455,7 +502,8 @@ fun ReturnScreens(
         }
         BottomNavBarItem.home -> {
             Home(
-                category = category,
+                selectedCategory = selectedCategoryForHome,
+                selectedTabAndSearch = selectedTabAndSearch,
                 saveLoginState = saveLoginState,
                 channelDataState=channelDataState,
                 channelUiState = channelHomeUiState,
@@ -466,7 +514,9 @@ fun ReturnScreens(
                 trendingState = trendingHomeState,
                 homeList = homeList,
                 onChannelEvent = onChannelEvent,
-                onTrendingEvent = onTrendingEvent
+                onTrendingEvent = onTrendingEvent,
+                onHistoryAndWatchListEvent = onHistoryAndWatchListEvent,
+                addAndRemoveWatchListAppResponse = addAndRemoveWatchListAppResponse,
             )
         }
         BottomNavBarItem.profile -> {
@@ -474,7 +524,15 @@ fun ReturnScreens(
                 navHostController = navController,)
         }
         BottomNavBarItem.trending -> {
-            Trending(navController = navController, categoryForTrendingState = categoryForTrendingState, onCategoryEvent = onCategoryEvent,onTrendingEvent=onTrendingEvent, trendingState = trendingState)
+            Trending(
+                selectedCategoriesForTrending = selectedCategoriesForTrending,
+                addAndRemoveWatchListAppResponse = addAndRemoveWatchListAppResponse,
+                onHistoryAndWatchListEvent = onHistoryAndWatchListEvent,
+                navController = navController,
+                categoryForTrendingState = categoryForTrendingState,
+                onCategoryEvent = onCategoryEvent,
+                onTrendingEvent=onTrendingEvent,
+                trendingState = trendingState)
         }
         null -> {}
     }

@@ -1,9 +1,10 @@
 package com.sqt.lts.navigation.route
 
 
-import android.net.Uri
 import com.example.lts.ui.tab.data.NavigationDrawer
+import com.sqt.lts.ui.channels.data.response.ChannelData
 import com.sqt.lts.utils.enums.ChannelUpdateNotUpdateType
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 
 
@@ -38,7 +39,7 @@ data object ProfileSettingRoute
 @Serializable
 data object FollowingRoute
 @Serializable
-data object FollowingDetailRoute
+data class FollowingDetailRoute(val channelId: Int? =null)
 @Serializable
 data class CreateChannelRoute(val channelUpdateNotUpdateType:ChannelUpdateNotUpdateType?=null,val channelId: Int?=null)
 @Serializable

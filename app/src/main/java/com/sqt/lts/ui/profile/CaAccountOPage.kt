@@ -74,11 +74,11 @@ fun CaAccountPage(
     val channelListState = rememberLazyListState()
 
 
-    val isVideoLoading = (caAccountResourceData?.isLoading == true && caAccountResourceData.videoAudioList?.isEmpty == true)
-    val isCategoryLoading = (categoriesState?.isLoading == true && categoriesState.categories.isEmpty() == true)
+    val isVideoLoading = (caAccountResourceData?.isLoading == true && caAccountResourceData.videoAudioList?.isEmpty() == true)
+    val isCategoryLoading = (categoriesState?.isLoading == true && categoriesState.categories.isEmpty())
     val isChannelLoading = (channelUiState?.isLoading == true && channelUiState.channelList?.isEmpty() == true)
     val isPagingVideoLoading = (caAccountResourceData?.isLoading == true && caAccountResourceData.videoAudioList?.isNotEmpty() == true)
-    val isPagingCategoryLoading = (categoriesState?.isLoading == true && categoriesState.categories.isNotEmpty() == true)
+    val isPagingCategoryLoading = (categoriesState?.isLoading == true && categoriesState.categories.isNotEmpty())
     val isPagingChannelLoading = (channelUiState?.isLoading == true && channelUiState.channelList?.isNotEmpty() == true)
 
     val width = LocalConfiguration.current.screenWidthDp.dp

@@ -60,26 +60,7 @@ fun CustomMainBottomNavigationBar(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.clickable {
-
                             onTabEvent(TabEvent.UpdateTabData(it))
-
-                            when(it){
-                                BottomNavBarItem.categories -> {
-
-                                }
-                                BottomNavBarItem.channels -> {}
-                                BottomNavBarItem.history -> {}
-                                BottomNavBarItem.home -> {}
-                                BottomNavBarItem.profile -> {
-
-                                }
-                                BottomNavBarItem.trending -> {
-
-                                }
-                            }
-
-
-
                         }
                     ) {
                         Box(
@@ -110,7 +91,8 @@ fun CustomMainBottomNavigationBar(
                         }
                     }
 
-                } else {
+                }
+                else {
                     Column(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,

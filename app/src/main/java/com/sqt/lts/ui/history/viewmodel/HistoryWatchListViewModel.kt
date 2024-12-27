@@ -9,6 +9,7 @@ import com.sqt.lts.repository.HistoryAndWatchListRepository
 import com.sqt.lts.ui.history.event.HistoryAndWatchListEvent
 import com.sqt.lts.ui.history.request.HistoryAndWatchListRequestModel
 import com.sqt.lts.ui.history.state.HistoryAndWatchListUiState
+import com.sqt.lts.ui.history.ui_state.HistoryAndWatchListUpdateState
 import com.sqt.lts.ui.trending.data.response.VideoAudio
 import com.sqt.lts.utils.enums.AddAndRemoveWatchType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,7 +33,7 @@ class HistoryWatchListViewModel @Inject constructor(val historyAndWatchListRepos
     private val _historyAndWatchListAppResponse = MutableStateFlow(HistoryAndWatchListUiState())
     val historyAndWatchListAppResponse : StateFlow<HistoryAndWatchListUiState> = _historyAndWatchListAppResponse
 
-    private val _addAndRemoveWatchListAppResponse = MutableSharedFlow<BaseCommonResponseModel.Data?>()
+    private val _addAndRemoveWatchListAppResponse = MutableSharedFlow<HistoryAndWatchListUpdateState>()
     val addAndRemoveWatchListAppResponse = _addAndRemoveWatchListAppResponse.asSharedFlow()
 
 
@@ -131,16 +132,16 @@ class HistoryWatchListViewModel @Inject constructor(val historyAndWatchListRepos
 
     private fun removeWatchList(resourceId: Int?,type: NavigationDrawer?=null){
 
-        historyAndWatchListRepository.removeWatchListData(resourceId = resourceId).onEach {
+        historyAndWatchListRepository.removeWatchListData(resourceId = resourceId).onEach { dataState ->
 
-            when(it){
+            when(dataState){
 
                 is DataState.Error -> {
-                    _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = false))
+                    _addAndRemoveWatchListAppResponse.emit(HistoryAndWatchListUpdateState(dataState = dataState, exception = dataState.exception, isLoading = false))
                 }
 
                 is DataState.Loading -> {
-                    _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = true))
+                    _addAndRemoveWatchListAppResponse.emit(HistoryAndWatchListUpdateState(dataState = dataState, isLoading = true))
                 }
                 is DataState.Success -> {
                     if(type == NavigationDrawer.WATCHLIST){
@@ -151,11 +152,18 @@ class HistoryWatchListViewModel @Inject constructor(val historyAndWatchListRepos
                         val index = arrayList.indexOfFirst { it?.resourceid == resourceId }
                         arrayList.removeAt(index)
                         _historyAndWatchListAppResponse.update { it.copy(videoAudioList = arrayList) }
-                        _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = false))
+                        _addAndRemoveWatchListAppResponse.emit(HistoryAndWatchListUpdateState(
+                            dataState = dataState,
+                            msg = dataState.message,
+                            isLoading = true))
                     }else{
                         val list = _historyAndWatchListAppResponse.value.videoAudioList.map { data-> if(data?.resourceid == resourceId) data?.copy(isaddedinwatchlist = 0) else data}
                         _historyAndWatchListAppResponse.update { it.copy(videoAudioList = list) }
-                        _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = false))
+                        _addAndRemoveWatchListAppResponse.emit(HistoryAndWatchListUpdateState(
+                            dataState = dataState,
+                            msg = dataState.message,
+                            isLoading = false))
+//                        _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = false))
                     }
 
                 }
@@ -173,17 +181,20 @@ class HistoryWatchListViewModel @Inject constructor(val historyAndWatchListRepos
             when(it){
 
                 is DataState.Error -> {
-                    _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = false))
+                    _addAndRemoveWatchListAppResponse.emit(HistoryAndWatchListUpdateState(dataState = it, exception = it.exception, isLoading = false))
+//                    _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = false))
                 }
 
                 is DataState.Loading -> {
-                    _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = true))
+                    _addAndRemoveWatchListAppResponse.emit(HistoryAndWatchListUpdateState(dataState = it, isLoading = true))
+//                    _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = true))
                 }
 
                 is DataState.Success -> {
                     val list = _historyAndWatchListAppResponse.value.videoAudioList.map { data-> if(data?.resourceid == resourceId) data?.copy(isaddedinwatchlist = 1) else data}
                     _historyAndWatchListAppResponse.update { it.copy(videoAudioList = list) }
-                    _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = false))
+                    _addAndRemoveWatchListAppResponse.emit(HistoryAndWatchListUpdateState(dataState = it, isLoading = false, msg = it.message))
+//                    _addAndRemoveWatchListAppResponse.emit(BaseCommonResponseModel.Data(isLoading = false))
                 }
 
             }

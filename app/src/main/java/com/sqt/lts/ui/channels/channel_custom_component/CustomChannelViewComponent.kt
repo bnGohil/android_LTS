@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,18 +41,16 @@ fun CustomChannelViewComponent(
 
     val isPagingLoading = (channelUiState?.isLoading == true && channelUiState.isFirst == false)
 
+    val listState = rememberLazyListState()
 
-
-
-    Column {
-        Spacer(modifier = Modifier.height(15.dp.scaleSize()))
-        LazyRow {
-            items(channelList?.size?:0){
-                if(channelList?.size == it.plus(1) && !isPagingLoading){
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo }
+            .collect{
+                if((it.lastOrNull()?.index?:0) >= 9 && !isPagingLoading && it.lastOrNull()?.index?.plus(1) == listState.layoutInfo.totalItemsCount){
                     onChannelEvent(ChannelEvent.GetHomeChannelData(
                         channelRequestModel = ChannelRequestModel(
                             isFirst = false,
-                            currentRecord = channelList.size,
+                            currentRecord = channelList?.size,
                             sortColumn = "trending",
                             sortDirection = "desc",
                             categoryIds ="",
@@ -59,6 +60,16 @@ fun CustomChannelViewComponent(
                         )
                     ))
                 }
+            }
+    }
+
+    Column {
+        Spacer(modifier = Modifier.height(15.dp.scaleSize()))
+        LazyRow(state = listState) {
+            items(channelList?.size?:0){
+//                if(channelList?.size == it.plus(1) && !isPagingLoading){
+//
+//                }
                 ChannelElementComponent(channelList?.get(it),
                     onChannelEvent = onChannelEvent,
                     onHomeDataEvent = onHomeDataEvent,

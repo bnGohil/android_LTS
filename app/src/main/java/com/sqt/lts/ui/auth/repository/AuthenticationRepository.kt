@@ -1,6 +1,6 @@
 package com.sqt.lts.ui.auth.repository
 import com.sqt.lts.datasource.remote.RestApiService
-import com.example.lts.datasource.remote.utils.safeApiCallWithApiStatus
+import com.sqt.lts.datasource.remote.utils.safeApiCallWithApiStatus
 import com.example.lts.repository.AuthRepository
 import com.example.lts.ui.auth.data.request.CreateUserRequestModel
 import com.example.lts.ui.auth.data.request.ForgotPasswordRequestModel

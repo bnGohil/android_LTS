@@ -448,6 +448,7 @@ fun PostVideoPage(
             {
             Column(modifier = Modifier
                 .padding(paddingValues)
+                .padding(horizontal = 10.dp.scaleSize())
                 .fillMaxSize()) {
                 Text(
                     modifier = Modifier

@@ -3,6 +3,7 @@ package com.sqt.lts.ui.home.view_model
 import android.annotation.SuppressLint
 import androidx.annotation.OptIn
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.media3.common.util.UnstableApi
 import com.sqt.lts.ui.channels.event.FollowingType
 import com.sqt.lts.ui.channels.data.response.ChannelData
@@ -11,9 +12,12 @@ import com.sqt.lts.ui.home.event.HomeEvent
 import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelJoinModel
 import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelUiState
 import com.sqt.lts.ui.trending.data.response.VideoAudio
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
+import kotlinx.coroutines.launch
 import kotlin.collections.ArrayList
 
 
@@ -23,7 +27,7 @@ class HomeViewModel() : ViewModel(){
     val homeList : MutableList<HomeResourceAndChannelJoinModel?> = _homeList
 
     private var _homeUiState = MutableStateFlow(HomeResourceAndChannelUiState())
-    val homeUiState : StateFlow<HomeResourceAndChannelUiState> = _homeUiState
+    val homeUiState = _homeUiState.asStateFlow()
 
 
 
@@ -48,6 +52,13 @@ class HomeViewModel() : ViewModel(){
             is HomeEvent.GetVideoList -> {
 
                 getVideoList(event.list)
+
+                viewModelScope.launch {
+                    delay(2000)
+                }
+
+                println("event.first : ${event.first}")
+
                 if(event.first == true){
                     getHomeList()
                 }else{
@@ -56,18 +67,26 @@ class HomeViewModel() : ViewModel(){
 
             }
 
-            HomeEvent.GetHomeData -> {}
+            HomeEvent.GetHomeData -> {
+
+            }
 
             HomeEvent.ClearData -> { clear() }
             is HomeEvent.UpdateHomeFollowUnFollowData -> {
                 updateChannelFollowUnFollow(event.channelId,event.followingType)
             }
+
+            is HomeEvent.UpdateResourceData -> {
+                addAndRemoveWatchList(event.resourceId)
+            }
+
+
         }
 
     }
 
 
-    private fun getVideoList(videoList: ArrayList<VideoAudio?>?=arrayListOf()){
+    private fun getVideoList(videoList: List<VideoAudio?>?=arrayListOf()){
         if(videoList == null) return
         for (i in videoList){
             _videoList.add(i)
@@ -78,7 +97,12 @@ class HomeViewModel() : ViewModel(){
 
         if(channelList == null) return
 
-        var arrayList = arrayListOf<HomeResourceAndChannelJoinModel>()
+
+//        if(isFirst == true){
+//            _channelList.clear()
+//        }
+
+        val arrayList = arrayListOf<HomeResourceAndChannelJoinModel>()
 
         for (i in channelList){
             _channelList.add(i)
@@ -112,11 +136,17 @@ class HomeViewModel() : ViewModel(){
                 _homeList.add(HomeResourceAndChannelJoinModel(videoItem = i, homeDataEnums = HomeDataEnums.RESOURCE))
             }
 
+
+
+
             if(_videoList.size > 2){
 
                 _homeList.add(2, element = HomeResourceAndChannelJoinModel(channelList = _channelList.toList(), homeDataEnums = HomeDataEnums.CHANNEL))
 
             }else{
+
+                println("else part is ${_videoList.size}")
+                println("else part is ${_channelList.size}")
 
                 _homeList.add(_videoList.size, element = HomeResourceAndChannelJoinModel(channelList = _channelList.toList(), homeDataEnums = HomeDataEnums.CHANNEL))
 
@@ -129,13 +159,35 @@ class HomeViewModel() : ViewModel(){
         }
 
 
-        _homeUiState.update { it.copy(homeDataList =_homeList.toList()) }
+        println("_homeList is ${_homeList.size}")
+
+        _homeList.forEach {
+            println(it?.homeDataEnums)
+        }
+
+
+
+//        _homeUiState.value = _homeUiState.value.copy(homeDataList =_homeList.toList())
+
+
+//        _homeList.forEach {
+//            println("it?.channelList : ${it?.channelList}")
+//        }
+
+        println("RESPONSE WHEN IS CHECK DATA ${_homeUiState.value.homeDataList}")
+        _homeUiState.updateAndGet { it.copy(homeDataList =_homeList.toList()) }
+
+
+//        _homeUiState.value.homeDataList.forEach {
+//            var videoData = it
+//            println("Video Data $videoData")
+//        }
 
     }
 
     private fun videoData(){
 
-        var arrayList = arrayListOf<HomeResourceAndChannelJoinModel>()
+        val arrayList = arrayListOf<HomeResourceAndChannelJoinModel>()
 
 
 
@@ -156,181 +208,34 @@ class HomeViewModel() : ViewModel(){
     }
 
 
-    @SuppressLint("SuspiciousIndentation")
-    @OptIn(UnstableApi::class)
+    private fun addAndRemoveWatchList(resourceId: Int?) {
+        _homeUiState.update { homeResourceAndChannelUiState -> homeResourceAndChannelUiState.copy(
+            homeDataList = homeResourceAndChannelUiState.homeDataList.map { it?.copy(videoItem = if(it.videoItem?.resourceid == resourceId) it.videoItem?.copy(isaddedinwatchlist = if(it.videoItem.isaddedinwatchlist == 0) 1 else 0) else it.videoItem)  })
+        }
+    }
+
     private fun updateChannelFollowUnFollow(channelId: Int?,followingType: FollowingType?){
+
 
         if(followingType == null && channelId == null) return
 
-        var arrayList = arrayListOf<HomeResourceAndChannelJoinModel>()
-
-        println("followingType:$followingType")
-        println("channelId:$channelId")
-
-        println("_channelList:${_channelList.size}")
-
-
-//        _channelList.forEach {
-//            println("FIRST TIME ID channelId = ${it?.channelid} channelId = $channelId  ${it?.isfollowchannel}")
-//        }
-
-
-        var channelBaseAllLists = _homeUiState.value.homeDataList.find { it?.homeDataEnums == HomeDataEnums.CHANNEL }
-
-        var data = _channelList.map {
-
-            if (it?.channelid == channelId) {
-                var count = if (followingType == FollowingType.FOLLOW) it?.countchannelmember?.plus(1) else ((it?.countchannelmember ?: (0 - 1)))
-                it?.copy(
-                    isfollowchannel = if (followingType == FollowingType.FOLLOW) 1 else 0,
-                    followers = "$count Followers"
-                )
-            } else {
-                it
-            }
-        }
-//
-//        channelBaseAllLists?.channelList?.forEach {
-//            println("First TIME ID channelId = ${it?.channelid} channelId = $channelId  ${it?.isfollowchannel}")
-//        }
-
-
-        channelBaseAllLists?.channelList  = data
-
-
-//        channelBaseAllLists?.channelList?.forEach {
-//
-//        }
-
-
-        _homeUiState.update { it }
-
-
-
-
-
-
-
-
-
-
-//             _homeUiState.value.homeDataList.forEach{
-//
-//         if (it?.homeDataEnums == HomeDataEnums.CHANNEL && it.channelList?.isNotEmpty() == true){
-//             it.channelList?.forEach {
-//                 Log.d("FIRST TIME id $channelId",it.toString())
-//             }
-//         }
-//
-//     }
-
-
-
-
-//     _homeUiState.value.homeDataList.find { it?.homeDataEnums == HomeDataEnums.CHANNEL && it.channelList?.isNotEmpty() == true}?.channelList = data
-
-
-//        _homeUiState.value.homeDataList.forEach{
-//
-//            if (it?.homeDataEnums == HomeDataEnums.CHANNEL && it.channelList?.isNotEmpty() == true){
-//                it.channelList?.forEach {
-//                    Log.d("SECOND TIME $channelId",it.toString())
-//                }
-//            }
-//
-//        }
-
-        //     _homeUiState.value.homeDataList.forEach{
-//
-//         if (it?.homeDataEnums == HomeDataEnums.CHANNEL && it.channelList?.isNotEmpty() == true){
-//             it.channelList?.forEach {
-//
-//             }
-//         }
-//
-//     }
-
-
-
-//        _homeUiState.update { it }
-
-
-
-
-
-
-
-
-
-
-
-
-//       var allList = _homeUiState.value.homeDataList.map { if(it?.homeDataEnums == HomeDataEnums.CHANNEL) it else it?.copy() }.toList()
-
-//        val list = allList.map { it?.channelList }.filter { it?.isNotEmpty() == true}
-//
-//        if(list.isNotEmpty()){
-//
-//            var isFirstListItem = list.first()
-//
-//            var data = isFirstListItem?.map {
-//
-//            if (it?.channelid == channelId) {
-//                var count = if (followingType == FollowingType.FOLLOW) it?.countchannelmember?.plus(1) else ((it?.countchannelmember ?: (0 - 1)))
-//                it?.copy(
-//                    isfollowchannel = if (followingType == FollowingType.FOLLOW) 1 else 0,
-//                    followers = "$count Followers"
-//                )
-//            } else {
-//                it
-//            }
-//        }
-//
-//
-//
-//
-//        }
-
-
-
-
-//        _homeUiState.value = _homeUiState.value.copy(arrayList)
-
-//        println("list is $list")
-
-
-
-
-
-
-
-//        var data = _channelList.map {
-//
-//            if (it?.channelid == channelId) {
-//                var count = if (followingType == FollowingType.FOLLOW) it?.countchannelmember?.plus(1) else ((it?.countchannelmember ?: (0 - 1)))
-//                it?.copy(
-//                    isfollowchannel = if (followingType == FollowingType.FOLLOW) 1 else 0,
-//                    followers = "$count Followers"
-//                )
-//            } else {
-//                it
-//            }
-//        }
-
-//        _homeUiState.value = _homeUiState.value.copy(
-//            homeDataList =
-//        )
-
-
-//        _getChannelResponse.value = _getChannelResponse.value.copy(data)
-
+        _homeUiState.update { homeResourceAndChannelUiState ->
+            homeResourceAndChannelUiState.copy(
+            homeDataList = homeResourceAndChannelUiState.homeDataList.map { homeResourceAndChannelJoinModel ->
+                if(homeResourceAndChannelJoinModel?.homeDataEnums == HomeDataEnums.CHANNEL) homeResourceAndChannelJoinModel.copy(
+                    channelList = homeResourceAndChannelJoinModel.channelList?.map {
+                        val count = if (followingType == FollowingType.FOLLOW) it?.countchannelmember?.plus(1) else ((it?.countchannelmember ?: (0 - 1)))
+                        if(it?.channelid == channelId) it?.copy(isfollowchannel = if (followingType == FollowingType.FOLLOW) 1 else 0, followers = "$count Followers") else it }
+            ) else homeResourceAndChannelJoinModel }
+        ) }
     }
 
     private fun clear(){
         _videoList.clear()
         _channelList.clear()
         _homeList.clear()
-        _homeUiState.value = _homeUiState.value.copy(homeDataList = _homeList)
+        _homeUiState.value.homeDataList = emptyList()
+        _homeUiState.update { it.copy(homeDataList = _homeList) }
     }
 
 

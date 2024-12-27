@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.example.lts.enums.PagingLoadingType
+import com.example.lts.ui.categories.data.request.GetCategoryRequestModel
 import com.example.lts.ui.categories.data.response.Category
 import com.example.lts.ui.categories.data.ui_state.CategoryUiState
 import com.sqt.lts.ui.categories.event.CategoriesEvent
@@ -43,11 +46,29 @@ fun HomeCategoriesComponent(
     categoriesState: CategoriesState? =null,
     onCategoryEvent:(CategoriesEvent) -> Unit,
     onCategoriesClick :(Category?) -> Unit,
-    listState: LazyListState = rememberLazyListState(),
+    onPaginationClickEvent:() -> Unit,
+
     ) {
+
+
 
     val isLoading = (categoriesState?.isLoading == true && categoriesState.categories.isEmpty())
     val isPaging = (categoriesState?.categories?.isNotEmpty() == true && categoriesState.isLoading)
+
+    val listState = rememberLazyListState()
+
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo }
+            .collect{
+                if((it.lastOrNull()?.index?:0) >= 9 && !isPaging && it.lastOrNull()?.index?.plus(1) == listState.layoutInfo.totalItemsCount){
+                    onPaginationClickEvent()
+                }
+            }
+    }
+
+
+
 
     LazyRow(modifier = Modifier
         .fillMaxWidth()
@@ -128,7 +149,7 @@ private fun HomeCategoriesComponentPreview() {
                 Category(categoryname = "Category5", categoryid = 5),
                 Category(categoryname = "Category6", categoryid = 6),
             )
-        ), onCategoryEvent = {})
+        ), onCategoryEvent = {}, onPaginationClickEvent = {})
     }
 
 }

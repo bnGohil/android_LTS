@@ -4,10 +4,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.lifecycle.viewModelScope
 import com.example.lts.ui.tab.bottom_bar.BottomNavBarItem
 import com.example.lts.ui.tab.event.TabEvent
-import com.example.lts.ui.tab.repository.TabRepository
 import com.example.lts.ui.tab.state.TabState
+import com.sqt.lts.repository.TabRepository
+import com.sqt.lts.ui.tab.state.SelectedTabAndSearch
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,6 +24,14 @@ class TabViewModel @Inject constructor(private val tabRepository: TabRepository)
     val tabState : StateFlow<TabState> = _tabState
 
 
+    private val _selectedAndSearchValue = Channel<SelectedTabAndSearch>()
+    val selectedAndSearchValue = _selectedAndSearchValue.receiveAsFlow()
+
+
+
+
+
+
 
     fun onEvent(event: TabEvent){
 
@@ -30,20 +42,32 @@ class TabViewModel @Inject constructor(private val tabRepository: TabRepository)
             is TabEvent.UpdateTabData -> {
                 updateTabData(event.bottomNavBarItem)
             }
+
+            is TabEvent.GlobalSearchReq -> {
+                updateAndShowHideData(bottomNavBarItem = event.bottomNavBarItem, isSearch = event.isSearch)
+            }
         }
     }
 
     private fun getTabListData(){
 
         viewModelScope.launch {
-         val response = tabRepository.getTabListData()
-         _tabState.value = _tabState.value.copy(tabList = response)
+//         val response = tabRepository.getTabListData()
+//         _tabState.value = _tabState.value.copy(tabList = response)
      }
 
     }
 
+
+
     private fun updateTabData(bottomNavBarItem: BottomNavBarItem){
         _tabState.value = _tabState.value.copy(selectedTab = bottomNavBarItem)
+    }
+
+    private fun updateAndShowHideData(bottomNavBarItem: BottomNavBarItem?,isSearch: Boolean?){
+     viewModelScope.launch {
+         _selectedAndSearchValue.send(SelectedTabAndSearch(isSearch = isSearch, selectedTab = bottomNavBarItem))
+     }
     }
 
 

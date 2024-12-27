@@ -11,7 +11,7 @@ import com.sqt.lts.ui.trending.data.response.VideoAudio
 data class TrendingState(
     var dataState: DataState<TrendingResponseModel.TrendingData?>? =null,
     var homeList: List<HomeResourceAndChannelJoinModel?>?=arrayListOf(),
-    val videoAudioList: ArrayList<VideoAudio?>? = arrayListOf(),
+    var videoAudioList: List<VideoAudio?>? = arrayListOf(),
     val isLoading: Boolean? =false,
     val isFirst: Boolean? =false,
     var totalRecord: Int? = 0

@@ -51,7 +51,7 @@ import java.nio.file.WatchEvent
 fun VideoComponent(
     naviController:NavHostController,
     onClick: () -> Unit,
-    onWatchClick: () -> Unit,
+    onWatchClick: (VideoAudio?) -> Unit,
     trendingItem: VideoAudio?=null) {
     Column(modifier = Modifier
         .fillMaxWidth()
@@ -100,7 +100,7 @@ fun VideoComponent(
                         painter = painterResource(id = if(trendingItem?.isaddedinwatchlist == 1) R.drawable.bookmark else R.drawable.favorite),
                       colorFilter = ColorFilter.tint(kWhite, blendMode = BlendMode.SrcIn),
                       contentDescription = "",modifier = Modifier.size(24.dp.scaleSize()).clickable{
-                            onWatchClick()
+                            onWatchClick(trendingItem)
                         }
                     )
                     Spacer(modifier = Modifier.width(width = 10.dp.scaleSize()))

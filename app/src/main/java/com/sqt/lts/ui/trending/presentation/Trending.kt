@@ -1,6 +1,7 @@
 package com.sqt.lts.ui.trending.presentation
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,24 +10,37 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.lts.base.BaseCommonResponseModel
 import com.example.lts.ui.categories.component.HomeCategoriesComponent
 import com.example.lts.ui.categories.data.request.GetCategoryRequestModel
+import com.example.lts.ui.categories.data.response.Category
+import com.example.lts.ui.categories.data.response.SelectedType
 import com.example.lts.ui.shimmer.ShimmerEffectBox
 import com.example.lts.ui.trending.component.VideoComponent
 import com.example.lts.ui.trending.state.TrendingState
+import com.example.lts.utils.extainstion.kWhiteW500FS17
+import com.example.lts.utils.network.DataState
 import com.sqt.lts.ui.theme.kBackGround
 import com.example.lts.utils.scaleSize
 import com.sqt.lts.navigation.route.TrendingDetailRoute
 import com.sqt.lts.ui.categories.event.CategoriesEvent
 import com.sqt.lts.ui.categories.state.CategoriesState
+import com.sqt.lts.ui.history.event.HistoryAndWatchListEvent
+import com.sqt.lts.ui.home.event.HomeEvent
 import com.sqt.lts.ui.theme.LtsTheme
 import com.sqt.lts.ui.trending.data.request.TrendingRequestModel
 import com.sqt.lts.ui.trending.event.TrendingEvent
@@ -35,33 +49,36 @@ import com.sqt.lts.ui.trending.event.TrendingEvent
 @Composable
 fun Trending(
     navController: NavHostController,
-    onCategoryEvent:(CategoriesEvent) -> Unit,
-    onTrendingEvent:(TrendingEvent) -> Unit,
-    trendingState: TrendingState? =null,
-    categoryForTrendingState: CategoriesState? =null,
+    onCategoryEvent: (CategoriesEvent) -> Unit,
+    onTrendingEvent: (TrendingEvent) -> Unit,
+    onHistoryAndWatchListEvent:(HistoryAndWatchListEvent) -> Unit,
+    trendingState: TrendingState? = null,
+    addAndRemoveWatchListAppResponse: DataState<BaseCommonResponseModel.Data?>? = null,
+    selectedCategoriesForTrending: Category? = null,
+    categoryForTrendingState: CategoriesState? = null,
+
 ) {
-
-    val listState = rememberLazyListState()
     val listForTrendingState = rememberLazyListState()
-    val isPagingLoading = (categoryForTrendingState?.isLoading == true && categoryForTrendingState.categories.isNotEmpty() == true)
     val isPagingTrendingLoading = (trendingState?.isLoading == true && trendingState.videoAudioList?.isNotEmpty() == true)
+    var resourceId = remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo }
-            .collect{
-                if((it.lastOrNull()?.index?:0) >= 9 && !isPagingLoading && it.lastOrNull()?.index?.plus(1) == listState.layoutInfo.totalItemsCount){
-                    onCategoryEvent(CategoriesEvent.GetAllCategoryDataForTrending(
-                        isFirst = false,
-                        getCategoryRequestModel = GetCategoryRequestModel(
-                            sortColumn = "",
-                            sortDirection = "desc",
-                            limit = 10,
-                            displayLoginUserCategory = 0,
-                        )
-                    ))
-                }
+    LaunchedEffect(addAndRemoveWatchListAppResponse) {
+
+        when(addAndRemoveWatchListAppResponse){
+
+            is DataState.Error -> {}
+
+            DataState.Loading -> {}
+
+            is DataState.Success -> {
+                onTrendingEvent(TrendingEvent.UpdateResourceForWatchData(resourceId = resourceId.intValue))
             }
+
+            null -> {}
+        }
     }
+
+
 
     LaunchedEffect(listForTrendingState) {
         snapshotFlow { listForTrendingState.layoutInfo.visibleItemsInfo }
@@ -109,6 +126,65 @@ fun Trending(
         ))
     }
 
+    LaunchedEffect(selectedCategoriesForTrending) {
+
+        when(selectedCategoriesForTrending?.type){
+
+            SelectedType.ALL -> {
+
+
+                onTrendingEvent(TrendingEvent.GetTrendingData(
+                    trendingRequestModel = TrendingRequestModel(
+                        isFirst = true,
+                        page = 1,
+                        sortColumn = "trending",
+                        sortDirection = "desc",
+                        mediaType = "",
+                        channelId = 0,
+                        displayloginuseruploaded = 0,
+                        limit = 3,
+                    )
+                ))
+
+
+
+            }
+
+            SelectedType.ANY -> {
+
+
+
+                val categoryIds = categoryForTrendingState?.categories?.filter { it.selectedCategory == true }?.map { it.categoryid }?.joinToString(",")
+
+
+
+                println("categoryIds:$categoryIds")
+
+                onTrendingEvent(TrendingEvent.GetTrendingData(
+                    trendingRequestModel = TrendingRequestModel(
+                        isFirst = true,
+                        page = 1,
+                        sortColumn = "trending",
+                        sortDirection = "desc",
+                        mediaType = "",
+                        channelId = 0,
+                        categoryIds=categoryIds,
+
+                        displayloginuseruploaded =  0,
+                        limit = 3,
+                    )
+                ))
+
+
+            }
+
+            null -> {
+
+            }
+        }
+
+    }
+
 
     val isLoading = trendingState?.isLoading == true && trendingState.videoAudioList?.isEmpty() == true
 
@@ -120,26 +196,62 @@ fun Trending(
         .padding(vertical = 10.dp.scaleSize(), horizontal = 20.dp.scaleSize())
     ) {
         HomeCategoriesComponent(
-            listState = listState,
-            onCategoryEvent = {},
+            onCategoryEvent = onCategoryEvent,
             categoriesState = categoryForTrendingState,
-            onCategoriesClick = {}
+            onCategoriesClick = { category -> if(category?.type == SelectedType.ALL){
+                    onCategoryEvent(CategoriesEvent.SelectAllForTrendingCategories)
+                }else{
+                    onCategoryEvent(CategoriesEvent.CategorySelectedForTrending(category))
+                }
+            },
+            onPaginationClickEvent = {
+                onCategoryEvent(CategoriesEvent.GetAllCategoryDataForTrending(isFirst = false, getCategoryRequestModel = GetCategoryRequestModel(sortColumn = "", sortDirection = "desc", limit = 10, displayLoginUserCategory = 0,)))
+            },
+
         )
         Spacer(modifier = Modifier.height(20.dp.scaleSize()))
+
+        if(!isLoading && trendingState?.videoAudioList?.isEmpty() == true){
+            Box(modifier = Modifier
+                .weight(1F)
+                .fillMaxWidth()) {
+                Text("Data Not Found", modifier = Modifier.align(Alignment.Center), textAlign = TextAlign.Center, style = TextStyle.Default.kWhiteW500FS17())
+            }
+        }
+
         LazyColumn(state = listForTrendingState) {
 
             items(if(isLoading) 10 else trendingState?.videoAudioList?.size?:0){
                 ShimmerEffectBox(
                     isShow = isLoading,
-                    modifier = if(isLoading) Modifier.fillMaxWidth().height(200.dp).padding(5.dp) else Modifier,
+                    modifier = if(isLoading) Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .padding(5.dp) else Modifier,
                     content = {
                         VideoComponent(trendingItem = trendingState?.videoAudioList?.get(it),
-                            onWatchClick = {},
-                            naviController = navController, onClick = {
-                            navController.navigate(TrendingDetailRoute(
-                               id = trendingState?.videoAudioList?.get(it)?.resourceid
-                            ))
-                        })
+                            onWatchClick = {
+                                if(it?.resourceid == null) return@VideoComponent
+
+                                resourceId.intValue = it.resourceid
+
+                                when(it.isaddedinwatchlist){
+
+                                    0->{
+                                        onHistoryAndWatchListEvent(HistoryAndWatchListEvent.AddWatchList(it.resourceid, type = null))
+                                    }
+
+                                    1->{
+                                        onHistoryAndWatchListEvent(HistoryAndWatchListEvent.RemoveWatchList(it.resourceid, type = null))
+                                    }
+
+                                }
+                            },
+                            naviController = navController,
+                            onClick = {
+                            navController.navigate(TrendingDetailRoute(id = trendingState?.videoAudioList?.get(it)?.resourceid))
+                           }
+                        )
                     }
                 )
             }
@@ -148,7 +260,10 @@ fun Trending(
                 item {
                     ShimmerEffectBox(
                         isShow = true,
-                        modifier = Modifier.fillMaxWidth().height(200.dp).padding(5.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .padding(5.dp)
                     ) {
 
                     }
@@ -169,7 +284,8 @@ private fun TrendingPreview() {
         Trending(
             navController = rememberNavController(),
             onCategoryEvent = {},
-            onTrendingEvent = {}
+            onTrendingEvent = {},
+            onHistoryAndWatchListEvent = {}
         )
     }
 }

@@ -1,14 +1,17 @@
-package com.example.lts.ui.tab.repository
+package com.sqt.lts.ui.tab.repository
 
 import com.example.lts.ui.tab.bottom_bar.BottomNavBarItem
+import com.example.lts.utils.network.DataState
+import com.sqt.lts.base.GlobalSearchData
+import com.sqt.lts.base.GlobalSearchResponseModel
+import com.sqt.lts.datasource.remote.RestApiService
+import com.sqt.lts.datasource.remote.utils.safeApiCallWithApiStatus
+import com.sqt.lts.repository.TabRepository
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class TabRepository @Inject constructor(){
+class TabRepositoryImp @Inject constructor(private val restApiService: RestApiService) : TabRepository {
 
-    suspend fun getTabListData():ArrayList<BottomNavBarItem>{
-
-        return  arrayListOf<BottomNavBarItem>(BottomNavBarItem.home, BottomNavBarItem.categories, BottomNavBarItem.channels, BottomNavBarItem.trending)
-
-    }
+    override fun getGlobalSearchData(search: String) = safeApiCallWithApiStatus { restApiService.getSearchGlobalData(searchText = search) }
 
 }

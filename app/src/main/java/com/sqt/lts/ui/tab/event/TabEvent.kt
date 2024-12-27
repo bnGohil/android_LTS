@@ -7,5 +7,7 @@ sealed class TabEvent {
 
     data class UpdateTabData(var bottomNavBarItem: BottomNavBarItem) : TabEvent()
 
+    data class GlobalSearchReq(var bottomNavBarItem: BottomNavBarItem?,val isSearch: Boolean?) : TabEvent()
+
 
 }

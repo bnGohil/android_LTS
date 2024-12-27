@@ -1,6 +1,7 @@
 package com.sqt.lts.ui.categories.viewModel
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastFilter
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastSumBy
@@ -19,9 +20,13 @@ import com.sqt.lts.ui.categories.state.CategoryType
 import com.example.lts.utils.network.DataState
 import com.example.lts.utils.toggle
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.forEach
@@ -43,8 +48,11 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
     private val _categoryCaAccountState = MutableStateFlow(CategoriesState())
     val categoryCaAccountState : StateFlow<CategoriesState> = _categoryCaAccountState
 
-    private val _updateCategoryData = Channel<Category>()
-    val updateCategoryData = _updateCategoryData.consumeAsFlow()
+    private val _updateCategoryData = MutableSharedFlow<Category>()
+    val updateCategoryData = _updateCategoryData.asSharedFlow()
+
+    private val _updateCategoryForTrendingData = MutableSharedFlow<Category>()
+    val updateCategoryForTrendingData = _updateCategoryForTrendingData.asSharedFlow()
 
 
 
@@ -58,12 +66,18 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
     val selectedTab : State<CategoryType> = _selectedTab
 
     private var categoriesHomeArray = arrayListOf<Category>()
+
+    private var getAllCategoryJob : Job?=null
+
     private var categoriesTrendingArray = arrayListOf<Category>()
     private var caAccountCategoriesArray = arrayListOf<Category>()
     private var postVideoForCategoriesArray = arrayListOf<Category>()
 
     private var _selectedItemArray = MutableStateFlow<List<Category>>(arrayListOf())
     val selectedItemArray : StateFlow<List<Category>> = _selectedItemArray
+
+    private var _selectedItemForTrendingArray = MutableStateFlow<List<Category>>(arrayListOf())
+    val selectedItemForTrendingArray : StateFlow<List<Category>> = _selectedItemForTrendingArray
 
 
    private var categoryCurrentPage = 1
@@ -153,10 +167,19 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
 
             CategoriesEvent.SelectAllCategories -> {
                 val data = categoriesHomeArray.map { if(it.type == SelectedType.ALL) it.copy(selectedCategory = true) else it.copy(selectedCategory = false) }
+
                 _categoryHomeState.update { it.copy(data) }
+
                 viewModelScope.launch {
-                    _updateCategoryData.send(Category(type = SelectedType.ALL))
+                    _updateCategoryData.emit(Category(type = SelectedType.ALL))
                 }
+            }
+
+            is CategoriesEvent.CategorySelectedForTrending -> {
+                selectCategoryForTrending(event.category)
+            }
+            CategoriesEvent.SelectAllForTrendingCategories -> {
+                selectAllForTrendingCategory()
             }
         }
     }
@@ -172,7 +195,26 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
       }
   }
 
+
+    private fun selectAllForTrendingCategory(){
+
+        _categoryForTrendingState.update {
+            categoriesState -> categoriesState.copy(
+            categories = categoriesState.categories.map {
+                if(it.type == SelectedType.ANY) it.copy(selectedCategory = false) else it.copy(selectedCategory = true)
+            }
+        )
+        }
+
+        viewModelScope.launch {
+            _updateCategoryForTrendingData.emit(Category(type = SelectedType.ALL))
+        }
+    }
+
+
     private fun selectCategory(category:Category?=null){
+
+        println("CLICK TIME ISSUE GET ${category}")
 
 
         if(category == null) return
@@ -182,26 +224,90 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
             selectedCategory = category.selectedCategory?.toggle()
         ) else e }.toList()
 
-        val isSelected = list.filter {categoryData-> categoryData.type == SelectedType.ANY }.all { categoryData -> categoryData.selectedCategory == true}
+        val isSelected = list.filter { (it.type == SelectedType.ANY) }.map { it.selectedCategory }.contains(true)
+
+
+//        println("isSelected:$isSelected")
 
 
         if(!isSelected){
             list.filter { categoryRes -> categoryRes.type == SelectedType.ALL}.forEach {
-                it.selectedCategory = false
+                it.selectedCategory = true
             }
         }else{
             list.filter { categoryRes -> categoryRes.type == SelectedType.ALL}.forEach {
-                it.selectedCategory = true
+                it.selectedCategory = false
             }
         }
 
+//        if(!isSelected){
+//            list.filter { categoryRes -> categoryRes.type == SelectedType.ALL}.forEach {
+//                it.selectedCategory = false
+//            }
+//        }else{
+//            list.filter { categoryRes -> categoryRes.type == SelectedType.ALL}.forEach {
+//                it.selectedCategory = true
+//            }
+//        }
+
         _selectedItemArray.value = _categoryHomeState.value.categories.filter { name -> name.selectedCategory == true}.toList()
+
+        viewModelScope.launch {
+            _updateCategoryData.emit(category.copy(type = if(!isSelected ) SelectedType.ALL else SelectedType.ANY))
+        }
 
         _categoryHomeState.update { it.copy(categories = list) }
 
-        viewModelScope.launch {
-            _updateCategoryData.send(category)
+
+
+    }
+    private fun selectCategoryForTrending(category:Category?=null){
+
+        println("CLICK TIME ISSUE GET ${category}")
+
+
+        if(category == null) return
+
+
+        val list = _categoryForTrendingState.value.categories.map { e -> if(e.categoryid == category.categoryid) e.copy(
+            selectedCategory = category.selectedCategory?.toggle()
+        ) else e }.toList()
+
+        val isSelected = list.filter { (it.type == SelectedType.ANY) }.map { it.selectedCategory }.contains(true)
+
+
+//        println("isSelected:$isSelected")
+
+
+        if(!isSelected){
+            list.filter { categoryRes -> categoryRes.type == SelectedType.ALL}.forEach {
+                it.selectedCategory = true
+            }
+        }else{
+            list.filter { categoryRes -> categoryRes.type == SelectedType.ALL}.forEach {
+                it.selectedCategory = false
+            }
         }
+
+//        if(!isSelected){
+//            list.filter { categoryRes -> categoryRes.type == SelectedType.ALL}.forEach {
+//                it.selectedCategory = false
+//            }
+//        }else{
+//            list.filter { categoryRes -> categoryRes.type == SelectedType.ALL}.forEach {
+//                it.selectedCategory = true
+//            }
+//        }
+
+        _selectedItemForTrendingArray.value = _categoryForTrendingState.value.categories.filter { name -> name.selectedCategory == true}.toList()
+
+        viewModelScope.launch {
+            _updateCategoryForTrendingData.emit(category.copy(type = if(!isSelected ) SelectedType.ALL else SelectedType.ANY))
+        }
+
+        _categoryForTrendingState.update { it.copy(categories = list) }
+
+
 
     }
 
@@ -231,31 +337,31 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
   private fun getCategoryListData(categoryUiState: CategoryUiState) {
 
 
-      if(categoryUiState.pagingLoadingType == PagingLoadingType.IS_LOADING){
-
-          categoryCurrentPage += 1
-
-      }else{
-
+      if(categoryUiState.pagingLoadingType == PagingLoadingType.SHIMMER){
           categoriesHomeArray.clear()
           categoryCurrentPage = 1
-
       }
 
-      if((categoryUiState.pagingLoadingType == PagingLoadingType.IS_LOADING) && (_categoryHomeState.value.totalRecord?:0) <= (categoriesHomeArray.size?:0)) return
+//      println("CALL THIS FUNCTION ")
 
 
+      if(categoryUiState.pagingLoadingType == PagingLoadingType.IS_LOADING && ((categoriesHomeArray.size-1) >= (_categoryHomeState.value.totalRecord?:0))) return
 
-      repository.getCategoryData(
+      getAllCategoryJob?.cancel()
+      getAllCategoryJob = repository.getCategoryData(
           getCategoryRequestModel = GetCategoryRequestModel(
               limit = 10,
               sortDirection = categoryUiState.getCategoryRequestModel?.sortDirection,
               page = categoryCurrentPage,
               displayLoginUserCategory = 1,
-              sortColumn = categoryUiState.getCategoryRequestModel?.sortColumn
+              sortColumn = categoryUiState.getCategoryRequestModel?.sortColumn,
           )
       ).onEach { dataState ->
+
+
+
           when(dataState){
+
               is DataState.Error -> {
                   _categoryHomeState.value = _categoryHomeState.value.copy(isLoading = false, categories = categoriesHomeArray)
               }
@@ -270,9 +376,11 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
 
                       dataState.data?.categoryList?.forEach { t -> t.selectedCategory = false }
 
+
                       categoriesHomeArray.addAll(dataState.data?.categoryList?: arrayListOf())
 
-                  }else{
+                  }else
+                  {
                       if(categoriesHomeArray.isEmpty()){
                           categoriesHomeArray.add(0,Category(categoryname = "All", type = SelectedType.ALL, selectedCategory = true))
                       }
@@ -294,9 +402,13 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
 
                   }
 
+                  println("dataState.data.categoryList : ${dataState.data?.categoryList}")
+                  println("Page ${categoryCurrentPage}")
+
                   _categoryHomeState.value = _categoryHomeState.value.copy(
                       totalRecord = dataState.data?.totalRecords,
                       categories = categoriesHomeArray,isLoading = false, currentPage = dataState.data?.currentPage?:1, totalPages = dataState.data?.totalPages)
+                  categoryCurrentPage += 1
               }
           }
       }.launchIn(viewModelScope)
@@ -359,7 +471,7 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
 
     private fun getCategoryDataForTrendingPage(isFirst: Boolean,getCategoryRequestModel : GetCategoryRequestModel?=null,){
 
-       if(isFirst == false && (_categoryForTrendingState.value.categories.size >= (_categoryForTrendingState.value.totalRecord?:0))) return
+       if(!isFirst && (_categoryForTrendingState.value.categories.size >= (_categoryForTrendingState.value.totalRecord?:0))) return
 
        if(isFirst){
            categoryCurrentPageForTrendingPage = 1
@@ -375,8 +487,8 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
                sortColumn = getCategoryRequestModel?.sortColumn,
                page = categoryCurrentPageForTrendingPage,
            )
-       ).onEach {
-           when(it){
+       ).onEach { dataState ->
+           when(dataState){
                is DataState.Error -> {
                    _categoryForTrendingState.emit(CategoriesState(isLoading = false, categories = categoriesTrendingArray))
                }
@@ -388,12 +500,44 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
                    if(isFirst){
                        categoriesTrendingArray.clear()
                        categoryCurrentPageForTrendingPage = 1
-                       categoriesTrendingArray.add(0,Category(categoryname = "All", type = SelectedType.ALL))
+                       categoriesTrendingArray.add(0,Category(categoryname = "All", type = SelectedType.ALL, selectedCategory = true))
                    }
 
-                   categoriesTrendingArray.addAll(it.data?.categoryList?:arrayListOf())
+                   if(_selectedItemForTrendingArray.value.isNotEmpty()){
+                       categoriesTrendingArray.filter { category -> category.categoryid in _selectedItemForTrendingArray.value.map { it.categoryid } }.forEach {
+                           it.selectedCategory=true
+                       }
 
-                   _categoryForTrendingState.emit(CategoriesState(isLoading = false, categories = categoriesTrendingArray, totalRecord = it.data?.totalRecords))
+                       dataState.data?.categoryList?.forEach { t -> t.selectedCategory = false }
+
+
+                       categoriesTrendingArray.addAll(dataState.data?.categoryList?: arrayListOf())
+
+                   }else {
+
+
+                       if(dataState.data?.categoryList != null){
+
+                           dataState.data.categoryList.forEach {
+                                   category ->
+                               if(category.type == null) {
+                                   category.type = SelectedType.ANY
+                                   category.selectedCategory = false
+                               }
+                           }
+
+                           categoriesTrendingArray.addAll(dataState.data.categoryList)
+
+                       }
+
+
+                   }
+
+
+
+//                   categoriesTrendingArray.addAll(dataState.data?.categoryList?:arrayListOf())
+
+                   _categoryForTrendingState.emit(CategoriesState(isLoading = false, categories = categoriesTrendingArray, totalRecord = dataState.data?.totalRecords))
                }
            }
        }.launchIn(viewModelScope)
@@ -455,7 +599,6 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
         }
 
 
-//        if(!first && (_categoriesForPostVideoAppResponse.value.totalRecord ?:0) >= (postVideoForCategoriesArray.size)) return
         if(!first && (postVideoForCategoriesArray.size >= (_categoriesForPostVideoAppResponse.value.totalRecord?:0))) return
 
         repository.getCategoryData(
@@ -499,19 +642,8 @@ class CategoryViewModel @Inject constructor(private val repository: CategoryRepo
     }
 
     private fun updateCategoriesDataValue(categoriesId: Int, selected: Boolean){
-//        println("selected is $selected")
        val response = _categoriesForPostVideoAppResponse.value.categories.map { if(it.categoryid == categoriesId) it.copy(selectedCategory = selected) else it }
-
         _categoriesForPostVideoAppResponse.update { it.copy(categories = response) }
-
-        println("response is $response")
-
-//        _categoriesForPostVideoAppResponse.value.categories.filter { categoriesId == it.categoryid }.forEach {
-//            println("selected is ${it.selectedCategory}")
-//            println("selected is ${selected}")
-//            it.selectedCategory = selected
-//        }
-//        _categoriesForPostVideoAppResponse.update { it }
     }
 
 

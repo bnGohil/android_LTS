@@ -11,15 +11,16 @@ import com.example.lts.ui.channels.repository.ChannelRepositoryImp
 import com.example.lts.ui.dummy.repository.DummyRepository
 import com.example.lts.ui.sharedPreferences.SharedPreferencesHelper
 import com.example.lts.ui.sharedPreferences.repository.SharedPrefRepository
-import com.example.lts.ui.tab.repository.TabRepository
-import com.example.lts.ui.trending.repository.TrendingRepositoryImp
+import com.sqt.lts.ui.trending.repository.TrendingRepositoryImp
 import com.sqt.lts.repository.ChannelRepository
 import com.sqt.lts.repository.HistoryAndWatchListRepository
 import com.sqt.lts.repository.SettingRepository
+import com.sqt.lts.repository.TabRepository
 import com.sqt.lts.repository.TrendingRepository
 import com.sqt.lts.ui.auth.repository.AuthenticationRepositoryImp
 import com.sqt.lts.ui.history.repository.HistoryAndWatchListRepositoryImp
 import com.sqt.lts.ui.profile.repository.SettingImpRepository
+import com.sqt.lts.ui.tab.repository.TabRepositoryImp
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -41,12 +42,6 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideCategoriesRepository(restApiService: RestApiService) : CategoryRepository = CategoriesRepositoryImp(restApiService = restApiService)
-
-    @Provides
-    @Singleton
-    fun providerTabRepository(): TabRepository {
-        return TabRepository()
-    }
 
     @Provides
     @Singleton
@@ -77,11 +72,16 @@ object RepositoryModule {
     fun providerNavigationRepository(): NavigationRepository {
         return NavigationRepository()
     }
+
+    @Provides
+    @Singleton
+    fun providerTabRepository(restApiService: RestApiService) : TabRepository = TabRepositoryImp(restApiService)
+
     @Provides
     @Singleton
     fun provideDummyRepository(@ApplicationContext context: Context): DummyRepository {
         return DummyRepository(context)
     }
-//
+
 
 }

@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -21,6 +23,7 @@ import com.example.lts.utils.network.DataState
 import com.example.lts.utils.scaleSize
 import com.sqt.lts.navigation.route.TrendingDetailRoute
 import com.sqt.lts.ui.channels.data.response.ChannelData
+import com.sqt.lts.ui.channels.event.FollowingType
 import com.sqt.lts.ui.channels.state.ChannelFollowingState
 import com.sqt.lts.ui.channels.state.ChannelUiState
 import com.sqt.lts.ui.home.enums.HomeDataEnums
@@ -32,10 +35,11 @@ import com.sqt.lts.ui.trending.data.response.VideoAudio
 import com.sqt.lts.ui.trending.event.TrendingEvent
 
 
-@RequiresApi(Build.VERSION_CODES.O)
+
 @Composable
 fun TrendingItemComponent(
     onChannelEvent:(ChannelEvent) -> Unit,
+    onWatchClick: (VideoAudio?) -> Unit,
     channelDataState:ChannelFollowingState?=null,
     onTrendingEvent:(TrendingEvent) -> Unit,
     homeList: List<HomeResourceAndChannelJoinModel?>?=arrayListOf(),
@@ -45,11 +49,13 @@ fun TrendingItemComponent(
     naviController: NavHostController,
 ) {
 
+
+
     LaunchedEffect(key1 = channelUiState) {
 
         when(channelUiState?.dataState){
             is DataState.Error -> {
-                onHomeDataEvent(HomeEvent.GetChannelList(list = arrayListOf(), true))
+                onHomeDataEvent(HomeEvent.GetChannelList(list = arrayListOf(), channelUiState.channelList?.isEmpty() == true))
             }
             is DataState.Loading -> {
 
@@ -66,11 +72,11 @@ fun TrendingItemComponent(
     LaunchedEffect(trendingState) {
         when(trendingState?.dataState){
             is DataState.Error -> {
-                onHomeDataEvent(HomeEvent.GetVideoList(list = arrayListOf(), first = true))
+                onHomeDataEvent(HomeEvent.GetVideoList(list = arrayListOf(), first = trendingState.videoAudioList?.isEmpty() == true))
             }
             is DataState.Loading -> {}
             is DataState.Success -> {
-                onHomeDataEvent(HomeEvent.GetVideoList(list = trendingState.videoAudioList, first = trendingState.isFirst))
+                onHomeDataEvent(HomeEvent.GetVideoList(list = trendingState.videoAudioList?: arrayListOf(), first = trendingState.isFirst))
             }
             null -> {}
         }
@@ -79,21 +85,83 @@ fun TrendingItemComponent(
 
 
 
+
+
+
     val isVideoLoading = trendingState?.isLoading == true && homeList?.isEmpty() == true
     val isChannelLoading = channelUiState?.isLoading == true && homeList?.isEmpty() == true
 
     val isPagingLoading = (trendingState?.isLoading == true && trendingState.isFirst == false)
+    val listForTrendingState = rememberLazyListState()
 
-    LazyColumn {
+    LaunchedEffect(channelDataState?.data) {
+
+
+        println("channelDataState?.data is ${channelDataState?.data}")
+
+        when(channelDataState?.data){
+
+
+
+            is DataState.Error -> {}
+
+            is DataState.Loading -> {}
+
+            is DataState.Success -> {
+
+                when(channelDataState.channelFollowingType){
+
+                    FollowingType.FOLLOW -> {
+                        onHomeDataEvent(HomeEvent.UpdateHomeFollowUnFollowData(channelId = channelDataState.channelId, followingType = FollowingType.FOLLOW))
+                    }
+
+                    FollowingType.UNFOLLOW -> {
+                        onHomeDataEvent(HomeEvent.UpdateHomeFollowUnFollowData(channelId = channelDataState.channelId, followingType = FollowingType.UNFOLLOW))
+                    }
+                    null -> {}
+                }
+            }
+            null -> {}
+        }
+
+
+
+    }
+
+    LaunchedEffect(listForTrendingState) {
+
+
+
+        snapshotFlow { listForTrendingState.layoutInfo.visibleItemsInfo }
+
+
+
+            .collect{
+
+                if((it.lastOrNull()?.index?:0) >= 2 && !isPagingLoading && it.lastOrNull()?.index?.plus(1) == listForTrendingState.layoutInfo.totalItemsCount){
+                    onTrendingEvent(TrendingEvent.GetTrendingDataForHome(
+                        trendingRequestModel = TrendingRequestModel(
+                            isFirst = false,
+                            currentRecord = listForTrendingState.layoutInfo.totalItemsCount,
+                            sortColumn = "trending",
+                            sortDirection = "desc",
+                            channelId = 0,
+                            limit = 3,
+                            displayloginuseruploaded = 0,
+                            mediaType = "",
+                        )
+                    ))
+                }
+            }
+    }
+
+    LazyColumn(
+        state = listForTrendingState
+    ) {
 
         items(if(isVideoLoading || isChannelLoading) 10  else homeList?.size?:0){
 
-//                if(homeList?.size == it.plus(1) && !isPagingLoading){
-//                    onTrendingEvent(TrendingEvent.GetTrendingDataForHome(trendingRequestModel = TrendingRequestModel(isFirst = false, limit = 3, currentRecord = homeList.size)))
-//                }
-
-
-                ShimmerEffectBox(
+            ShimmerEffectBox(
                     isShow = (isVideoLoading && isChannelLoading),
                     content = {
 
@@ -112,8 +180,9 @@ fun TrendingItemComponent(
                             }else{
 
                                 VideoComponent(
-                                    onWatchClick = {},
-                                    naviController = naviController, trendingItem = homeList?.get(it)?.videoItem, onClick = {
+                                    onWatchClick = onWatchClick,
+                                    naviController = naviController, trendingItem = homeList?.get(it)?.videoItem,
+                                    onClick = {
                                     naviController.navigate(TrendingDetailRoute(
                                         id = homeList?.get(it)?.videoItem?.resourceid
                                     ))
@@ -128,7 +197,7 @@ fun TrendingItemComponent(
 
 
                     },
-                    modifier = if((isVideoLoading == true && isChannelLoading == true)) Modifier.fillMaxWidth().padding(10.dp).height(200.dp.scaleSize()) else Modifier
+                    modifier = if((isVideoLoading && isChannelLoading)) Modifier.fillMaxWidth().padding(10.dp).height(200.dp.scaleSize()) else Modifier
                 )
 
                 if(isPagingLoading && homeList?.size == it.plus(1)){
@@ -201,7 +270,8 @@ private fun TrendingItemComponentPreview() {
             naviController = rememberNavController(),
             onHomeDataEvent = {},
             onChannelEvent = {},
-            onTrendingEvent = {}
+            onTrendingEvent = {},
+            onWatchClick = {}
         )
     }
 }

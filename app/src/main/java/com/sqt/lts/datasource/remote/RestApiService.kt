@@ -10,6 +10,7 @@ import com.example.lts.ui.auth.data.response.LoginUserResponseModel
 import com.example.lts.ui.categories.data.response.CategoryResponseModel
 import com.google.gson.annotations.SerializedName
 import com.sqt.lts.base.BaseTermDataModel
+import com.sqt.lts.base.GlobalSearchResponseModel
 import com.sqt.lts.ui.channels.data.request.FollowAndUnFollowRequestModel
 import com.sqt.lts.ui.channels.data.response.ChannelDataResponseModel
 import com.sqt.lts.ui.channels.data.response.GetChannelDetailDataModel
@@ -19,6 +20,8 @@ import com.sqt.lts.ui.history.response.HistoryResponseModel
 import com.sqt.lts.ui.history.response.WatchListResponseModel
 import com.sqt.lts.ui.post_video.data.request.TermCategoryRequestModel
 import com.sqt.lts.ui.profile.response.UserProfileResponseModel
+import com.sqt.lts.ui.trending.data.request.SharedTrendingRequestModel
+import com.sqt.lts.ui.trending.data.response.TrendingLikeAndDisLikeModel
 import com.sqt.lts.ui.trending.data.response.TrendingResponseModel
 import com.sqt.lts.ui.trending.data.response.TrendingVideoDetailModel
 import okhttp3.MultipartBody
@@ -141,6 +144,15 @@ interface RestApiService {
 
     @POST("watchlist/remove")
     suspend fun removeWatchList(@Body addAndRemoveRequestModel:AddAndRemoveRequestModel?) : BaseCommonResponseModel
+
+    @POST("resource/like-dislike-resource")
+    suspend fun likeAndDislikeResource(@Body trendingLikeAndDisLikeModel: TrendingLikeAndDisLikeModel?) : BaseCommonResponseModel
+
+    @POST("resource/share-resource")
+    suspend fun sharedTrendingData(@Body sharedTrendingRequestModel: SharedTrendingRequestModel):BaseCommonResponseModel
+
+    @POST("resource/global-search")
+    suspend fun getSearchGlobalData( @Field("p_searchtext") searchText : String?) : GlobalSearchResponseModel
 
     @POST("projectterm/projecttermbytermcategory")
     suspend fun projectTermByTermCategory(@Body termCategoryRequestModel:TermCategoryRequestModel) : BaseTermDataModel

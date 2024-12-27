@@ -148,11 +148,14 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
 
 
                 val saveLoginState = sharedPreferencesViewModel.isLoginState.collectAsStateWithLifecycle(initialValue = null)
+                val addAndRemoveWatchListAppResponse = historyAndWatchViewModel.addAndRemoveWatchListAppResponse.collectAsStateWithLifecycle(initialValue = null)
                 val channelDataState = channelViewModel.getHomeChannelResponse.collectAsStateWithLifecycle(initialValue = null)
                 val getChannelResponse = channelViewModel.getChannelResponse.collectAsStateWithLifecycle(initialValue = null)
                 val categoryHomeState = categoriesViewModel.categoryHomeState.collectAsStateWithLifecycle(initialValue = null)
                 val categoryForTrendingState = categoriesViewModel.categoryForTrendingState.collectAsStateWithLifecycle(initialValue = null)
+                val selectedTabAndSearch = tabViewModel.selectedAndSearchValue.collectAsStateWithLifecycle(initialValue = null)
                 val updateCategoryData = categoriesViewModel.updateCategoryData.collectAsStateWithLifecycle(initialValue = null)
+                val updateCategoryForTrendingData = categoriesViewModel.updateCategoryForTrendingData.collectAsStateWithLifecycle(initialValue = null)
                 val categoryDataState = categoriesViewModel.categoryDataState.collectAsStateWithLifecycle(initialValue = null)
                 val trendingHomeState = trendingViewModel.trendingHomeState.collectAsStateWithLifecycle(initialValue = null)
                 val trendingState = trendingViewModel.trendingState.collectAsStateWithLifecycle(initialValue = null)
@@ -164,6 +167,7 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
 
 
 
+                println("RESPONSE IS ${selectedTabAndSearch.value}")
 
 
                 LaunchedEffect(tabViewModel) {
@@ -180,8 +184,8 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                                     sortColumn = "",
                                     displayLoginUserCategory = if(loginResponseState?.isLogin == false) 1 else 0,
                                     page = 1,
-                                    limit = 100,
-                                    sortDirection = "desc"
+                                    limit = 10,
+                                    sortDirection = ""
                                 )
                             )
                         )
@@ -197,38 +201,44 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
 
 
 
-                if(homeProvider.channelList.isEmpty()){
-                    LaunchedEffect(key1 = channelViewModel) {
-                        channelViewModel.onEvent(ChannelEvent.GetHomeChannelData(
-                            channelRequestModel = ChannelRequestModel(
-                                isFirst = true,
-                                limit = 10,
-                                page = 1,
-                                sortColumn = "trending",
-                                sortDirection = "desc",
-                                categoryIds ="",
-                                exceptChannelIds = "",
-                                myCreatedChannel = 0,
-                                myFollowingChannel = 0
-                            )
-                        ))
-                    }
+                LaunchedEffect(key1 = channelViewModel) {
+                    channelViewModel.onEvent(ChannelEvent.GetHomeChannelData(
+                        channelRequestModel = ChannelRequestModel(
+                            isFirst = true,
+                            limit = 10,
+                            page = 1,
+                            sortColumn = "trending",
+                            sortDirection = "desc",
+                            categoryIds ="",
+                            exceptChannelIds = "",
+                            myCreatedChannel = 0,
+                            myFollowingChannel = 0
+                        )
+                    ))
                 }
 
 
-                if(homeProvider.videoList.isEmpty()){
-                    LaunchedEffect(key1 = trendingViewModel) {
-                        trendingViewModel.onEvent(TrendingEvent.GetTrendingDataForHome(
-                            trendingRequestModel = TrendingRequestModel(
-                                isFirst = true,
-                                page = 1,
-                                limit = 3,
-                            )
-                        ))
-                    }
+                LaunchedEffect(key1 = trendingViewModel) {
+                    trendingViewModel.onEvent(TrendingEvent.GetTrendingDataForHome(
+                        trendingRequestModel = TrendingRequestModel(
+                            isFirst = true,
+                            page = 1,
+                            limit = 3,
+                            sortColumn = "trending",
+                            mediaType = "",
+                            sortDirection = "desc",
+                            channelId = 0,
+                            displayloginuseruploaded = 0
+                        )
+                    ))
                 }
+
+
+
+
 
                 TabPage(
+                    addAndRemoveWatchListAppResponse = addAndRemoveWatchListAppResponse.value?.dataState,
                     userDetailUiState = userDetailUiState.value,
                     channelDataState = channelUiState.value,
                     channelHomeUiState = channelDataState.value,
@@ -240,7 +250,7 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                     onHomeDataEvent = homeProvider::onEvent,
                     trendingHomeState = trendingHomeState.value,
                     homeList = homeUiState.value?.homeDataList,
-                    onChannelEvent=channelViewModel::onEvent,
+                    onChannelEvent = channelViewModel::onEvent,
                     onTrendingEvent = trendingViewModel::onEvent,
                     onTabEvent = tabViewModel::onEvent,
                     tabState = tabState.value,
@@ -249,7 +259,10 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                     channelUiState = getChannelResponse.value,
                     categoryForTrendingState = categoryForTrendingState.value,
                     trendingState = trendingState.value,
-                    category = updateCategoryData.value
+                    selectedCategoriesForTrending = updateCategoryForTrendingData.value,
+                    selectedCategoryForHome = updateCategoryData.value,
+                    onHistoryAndWatchListEvent = historyAndWatchViewModel::onEvent,
+                    selectedTabAndSearch = selectedTabAndSearch.value
                 )
             }
 
@@ -310,6 +323,7 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                 val trendingVideoResourceUiState = trendingViewModel.resourceTrendingDetailState.collectAsStateWithLifecycle(null)
                 val trendingVideoResourcePlayListUiState = trendingViewModel.trendingPlayListState.collectAsStateWithLifecycle(null)
                 val channelUiState = channelViewModel.followUnFollowAppResponse.collectAsStateWithLifecycle(null)
+                val likeAndDislikeUiState = trendingViewModel.updateLikeAndDisLikeTrendingState.collectAsStateWithLifecycle(null)
 
                 TrendingVideoDetail(
                     id = argument.id,
@@ -319,7 +333,8 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                     trendingVideoResourceUiState = trendingVideoResourceUiState.value,
                     trendingPlayListState = trendingVideoResourcePlayListUiState.value,
                     navController = navController,
-                    onChannelEvent = channelViewModel::onEvent
+                    onChannelEvent = channelViewModel::onEvent,
+                    likeAndDislikeUiState = likeAndDislikeUiState.value
                 )
             }
 
@@ -388,9 +403,28 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                 FollowingPage(navigationHostController = navController, onChannelEvent = channelViewModel::onEvent, channelUiState = getFollowingChannelResponse.value)
 
             }
+
             composable<FollowingDetailRoute>(){
-                FollowingDetailPage(navController, trendingViewModel = trendingViewModel, navigationViewModel = navigationViewModel, channelViewModel =  channelViewModel)
+
+                val data = it.toRoute<FollowingDetailRoute>()
+                val channelDetailAppResponse = channelViewModel.channelDetailAppResponse.collectAsStateWithLifecycle(null)
+                val followUnFollowAppResponse = channelViewModel.followUnFollowAppResponse.collectAsStateWithLifecycle(null)
+                val trendingState = trendingViewModel.trendingChannelState.collectAsStateWithLifecycle(null)
+                val addAndRemoveWatchListAppResponse = historyAndWatchViewModel.addAndRemoveWatchListAppResponse.collectAsStateWithLifecycle(initialValue = null)
+
+                FollowingDetailPage(
+                    naviController =navController,
+                    channelId = data.channelId,
+                    onChannelEvent = channelViewModel::onEvent,
+                    onTrendingEvent = trendingViewModel::onEvent,
+                    channelDetailUiState = channelDetailAppResponse.value,
+                    channelFollowingState = followUnFollowAppResponse.value,
+                    trendingState = trendingState.value,
+                    onHistoryAndWatchListEvent = historyAndWatchViewModel::onEvent,
+                    addAndRemoveWatchListAppResponse = addAndRemoveWatchListAppResponse.value?.dataState,
+                    )
             }
+
             composable<CreateChannelRoute>(){
                 val createChannelAppResponse = channelViewModel.createChannelAppResponse.collectAsStateWithLifecycle(null)
                 val channelDetailAppResponse = channelViewModel.channelDetailAppResponse.collectAsStateWithLifecycle(null)

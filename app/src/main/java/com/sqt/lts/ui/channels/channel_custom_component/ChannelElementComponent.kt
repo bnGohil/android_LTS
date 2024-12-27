@@ -51,6 +51,12 @@ fun ChannelElementComponent(channel: ChannelData? = null,
                             channelDataState:ChannelFollowingState?=null,
                             onUpdateClick: () -> Unit,
                             ) {
+
+
+
+
+
+
     Box(modifier = Modifier
         .padding(horizontal = 5.dp.scaleSize())
         .background(kCardBackgroundColor)
@@ -58,41 +64,7 @@ fun ChannelElementComponent(channel: ChannelData? = null,
     ){
 
 
-        LaunchedEffect(channelDataState) {
 
-            when(channelDataState?.data){
-
-                is DataState.Error -> {}
-
-                is DataState.Loading -> {}
-
-                is DataState.Success -> {
-//
-//                    val current = LocalDateTime.now()
-//
-//                    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
-//                    val formatted = current.format(formatter)
-
-//                    println("Current Date and Time is: $formatted")
-
-                    when(channelDataState.channelFollowingType){
-
-                        FollowingType.FOLLOW -> {
-                            onHomeDataEvent(HomeEvent.UpdateHomeFollowUnFollowData(channelId = channelDataState.channelId, followingType = FollowingType.FOLLOW))
-                        }
-
-                        FollowingType.UNFOLLOW -> {
-                            onHomeDataEvent(HomeEvent.UpdateHomeFollowUnFollowData(channelId = channelDataState.channelId, followingType = FollowingType.UNFOLLOW))
-                        }
-                        null -> {}
-                    }
-                }
-                null -> {}
-            }
-
-
-
-        }
 
         val isChannelLoading = channelDataState?.isLoading == true
 
