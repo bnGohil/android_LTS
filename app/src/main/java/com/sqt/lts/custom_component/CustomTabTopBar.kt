@@ -82,53 +82,6 @@ fun CustomTabTopBar(
 
 
     val isSearch = remember { mutableStateOf<Boolean>(false) }
-    val searchText = remember { mutableStateOf<String>("") }
-
-//    Row(
-//        modifier = Modifier.padding(horizontal = 10.dp),
-//        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-//        Box(modifier = Modifier
-//            .weight(1F)
-//            .border(
-//                shape = CircleShape,
-//                border = BorderStroke(
-//                    color = kWhite,
-//                    width = 1.dp,
-//                )
-//            )
-//            .padding(vertical = 10.dp)) {
-//
-//
-//            if(searchText.value.isEmpty()){
-//                Text("Search", style = TextStyle.Default.kWhiteW500FS17(), modifier = Modifier.padding(horizontal = 14.dp.scaleSize()))
-//            }
-//
-//            BasicTextField(
-//                singleLine = true,
-//                modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp),
-//                keyboardOptions = KeyboardOptions(
-//                    imeAction = ImeAction.Done,
-//                    keyboardType = KeyboardType.Text
-//                ),
-//                value = searchText.value,
-//                onValueChange = {
-//                    searchText.value = it
-//                    onValueChange(it)
-//                },
-//                textStyle = TextStyle.Default.kSecondaryTextColorW500FS15(),
-//                cursorBrush = SolidColor(kWhite)
-//            )
-//
-//
-//        }
-//        OutlinedIconButton(
-//            border = BorderStroke(color = kWhite, width = 1.dp),
-//            onClick = {
-//                isSearch.value = !isSearch.value
-//            }) {
-//            Icon(Icons.Default.Clear, "clear", tint = kWhite)
-//        }
-//    }
 
 
     Column() {
@@ -196,6 +149,9 @@ fun CustomTabTopBar(
                         modifier = Modifier
                             .size(25.dp.scaleSize())
                             .clickable {
+                                if(tabState?.selectedTab != BottomNavBarItem.home){
+                                    selectedTabEvent(TabEvent.UpdateTabData(BottomNavBarItem.home))
+                                }
                                 isSearch.value = !isSearch.value
                                 selectedTabEvent(TabEvent.GlobalSearchReq(
                                     bottomNavBarItem = tabState?.selectedTab,

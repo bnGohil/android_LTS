@@ -42,9 +42,7 @@ import com.sqt.lts.ui.theme.LtsTheme
 @SuppressLint("RememberReturnType")
 @Composable
 fun Categories(
-    navController: NavHostController,
     onCategoryEvent: (CategoriesEvent) -> Unit,
-    selectedTab: CategoryType? = null,
     categoriesState: CategoriesState?=null) {
 
     val gridState = rememberLazyGridState()
@@ -113,7 +111,6 @@ fun Categories(
 private fun CategoriesPreview() {
     LtsTheme {
         Categories(
-            navController = rememberNavController(),
             onCategoryEvent = {},
             categoriesState = CategoriesState(
                 categories = arrayListOf(
@@ -129,7 +126,6 @@ private fun CategoriesPreview() {
                     Category(categoryname = "Category10"),
                 )
             ),
-            selectedTab = CategoryType.MY_CATEGORY
         )
     }
 }

@@ -1,13 +1,9 @@
 package com.sqt.lts.ui.home
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,10 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -44,6 +36,7 @@ import com.example.lts.ui.categories.data.response.Category
 import com.example.lts.ui.categories.data.response.SelectedType
 import com.example.lts.ui.categories.data.ui_state.CategoryUiState
 import com.example.lts.ui.sharedPreferences.data.SaveLoginState
+import com.example.lts.ui.tab.event.TabEvent
 import com.sqt.lts.ui.categories.event.CategoriesEvent
 import com.sqt.lts.ui.categories.state.CategoriesState
 import com.sqt.lts.ui.channels.event.ChannelEvent
@@ -63,12 +56,14 @@ import com.sqt.lts.ui.history.event.HistoryAndWatchListEvent
 import com.sqt.lts.ui.home.enums.HomeDataEnums
 import com.sqt.lts.ui.home.event.HomeEvent
 import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelJoinModel
+import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelUiState
 import com.sqt.lts.ui.tab.state.SelectedTabAndSearch
 import com.sqt.lts.ui.theme.LtsTheme
 import com.sqt.lts.ui.theme.kWhite
 import com.sqt.lts.ui.trending.data.request.TrendingRequestModel
 import com.sqt.lts.ui.trending.data.response.VideoAudio
 import com.sqt.lts.ui.trending.event.TrendingEvent
+import com.sqt.lts.utils.enums.ApiResponseType
 
 @Composable
 fun Home(
@@ -77,6 +72,7 @@ fun Home(
     onChannelEvent:(ChannelEvent) -> Unit,
     onHistoryAndWatchListEvent:(HistoryAndWatchListEvent) -> Unit,
     homeList: List<HomeResourceAndChannelJoinModel?>?=arrayListOf(),
+    homeResourceAndChannelUiState: HomeResourceAndChannelUiState?=null,
     trendingState: TrendingState? =null,
     saveLoginState: SaveLoginState? =null,
     channelUiState: ChannelUiState? =null,
@@ -86,6 +82,7 @@ fun Home(
     onCategoryEvent:(CategoriesEvent) -> Unit,
     channelDataState:ChannelFollowingState?=null,
     onHomeDataEvent:(HomeEvent) -> Unit,
+    tabEventOnClick:(TabEvent) -> Unit,
     selectedTabAndSearch: SelectedTabAndSearch? = null,
 ) {
 
@@ -100,6 +97,25 @@ fun Home(
 
    val isSearch =  selectedTabAndSearch?.isSearch == true
 
+
+    LaunchedEffect(homeResourceAndChannelUiState) {
+
+        snapshotFlow { homeResourceAndChannelUiState?.apiResponseType }.collect{
+            when(it){
+                ApiResponseType.SUCCESS -> {
+                    onHomeDataEvent(HomeEvent.ClearData)
+                    onHomeDataEvent(HomeEvent.UpdateSearchData(searchData = homeResourceAndChannelUiState?.homeDataList))
+                }
+                ApiResponseType.LOADING -> {
+
+                }
+                ApiResponseType.ERROR -> {
+
+                }
+                null -> {}
+            }
+        }
+    }
 
 
     LaunchedEffect(selectedCategory) {
@@ -241,7 +257,49 @@ fun Home(
                         keyboardType = KeyboardType.Text
                     ),
                     value = searchText.value,
-                    onValueChange = { searchText.value = it },
+                    onValueChange = {
+
+                        searchText.value = it
+
+                        if(it.isEmpty()){
+
+
+
+//                            onHomeDataEvent(HomeEvent.ClearData)
+
+                            tabEventOnClick(TabEvent.GlobalHomeSearchData(it))
+
+                            onChannelEvent(ChannelEvent.GetHomeChannelData(
+                                channelRequestModel = ChannelRequestModel(
+                                    isFirst = true,
+                                    limit = 10,
+                                    page = 1,
+                                    sortColumn = "trending",
+                                    sortDirection = "desc",
+                                    categoryIds ="",
+                                    exceptChannelIds = "",
+                                    myCreatedChannel = 0,
+                                    myFollowingChannel = 0
+                                )
+                            ))
+                            onTrendingEvent(TrendingEvent.GetTrendingDataForHome(
+                                trendingRequestModel = TrendingRequestModel(
+                                    isFirst = true,
+                                    page = 1,
+                                    limit = 3,
+                                    sortColumn = "trending",
+                                    mediaType = "",
+                                    sortDirection = "desc",
+                                    channelId = 0,
+                                    displayloginuseruploaded = 0
+                                )
+                            ))
+                        }else{
+                            onHomeDataEvent(HomeEvent.ClearData)
+                            tabEventOnClick(TabEvent.GlobalHomeSearchData(it))
+                        }
+
+                                    },
                     textStyle = TextStyle.Default.kSecondaryTextColorW500FS15(),
                     cursorBrush = SolidColor(kWhite)
                 )
@@ -304,7 +362,8 @@ fun Home(
                     }
 
                 }
-            }
+            },
+            homeResourceAndChannelUiState = homeResourceAndChannelUiState
             )
     }
     }
@@ -366,7 +425,8 @@ private fun HomePagePreview() {
             onCategoryEvent = {},
             onChannelEvent = {},
             onTrendingEvent = {},
-            onHistoryAndWatchListEvent = {}
+            onHistoryAndWatchListEvent = {},
+            tabEventOnClick = {}
             )
     }
 }

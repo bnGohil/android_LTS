@@ -40,7 +40,9 @@ import com.example.lts.utils.scaleSize
 import com.sqt.lts.ui.channels.data.response.ChannelData
 import com.sqt.lts.ui.channels.state.ChannelFollowingState
 import com.sqt.lts.ui.home.event.HomeEvent
+import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelUiState
 import com.sqt.lts.ui.theme.LtsTheme
+import com.sqt.lts.utils.enums.GlobalSearchORHomeData
 
 
 @Composable
@@ -50,6 +52,7 @@ fun ChannelElementComponent(channel: ChannelData? = null,
                             onHomeDataEvent:(HomeEvent) -> Unit,
                             channelDataState:ChannelFollowingState?=null,
                             onUpdateClick: () -> Unit,
+                            homeResourceAndChannelUiState: HomeResourceAndChannelUiState?=null,
                             ) {
 
 
@@ -80,54 +83,59 @@ fun ChannelElementComponent(channel: ChannelData? = null,
             Spacer(modifier = Modifier.height(10.dp.scaleSize()))
             Text(text = channel?.channelname?:"", style = TextStyle.Default.kWhiteW500FS17())
             Spacer(modifier = Modifier.height(10.dp.scaleSize()))
-            Text(text = "${channel?.followers ?: "0"} ", style = TextStyle.Default.kLightTextColorW600FS20())
-            Spacer(modifier = Modifier.height(10.dp.scaleSize()))
-            if(isUpdateStatus == IsUpdateStatus.UPDATE){
-                OutlinedButton(
-                    colors = ButtonDefaults.buttonColors(containerColor = kPrimaryColor),
-                    shape = RoundedCornerShape(10.dp.scaleSize()),
-                    border = null,
-                    onClick = onUpdateClick,
-                    content = {
-                        Text("Update",style = TextStyle.Default.kPrimaryColorW400FS15().copy(color = kWhite))
-                    }
-                )
-            }else{
-                OutlinedButton(
-                    colors = ButtonDefaults.buttonColors(containerColor = if (channel?.isfollowchannel == 0) kPrimaryColor else Color.Transparent),
-                    shape = RoundedCornerShape(10.dp.scaleSize()),
-                    border = if (channel?.isfollowchannel != 0) BorderStroke(
-                        color = kPrimaryColor,
-                        width = 1.dp.scaleSize()
-                    ) else null,
-                    onClick = {
+            if(homeResourceAndChannelUiState?.typeForSelection != GlobalSearchORHomeData.GLOBAL_SEARCH){
+                Text(text = "${channel?.followers ?: "0"} ", style = TextStyle.Default.kLightTextColorW600FS20())
+                Spacer(modifier = Modifier.height(10.dp.scaleSize()))
+                if(isUpdateStatus == IsUpdateStatus.UPDATE){
+                    OutlinedButton(
+                        colors = ButtonDefaults.buttonColors(containerColor = kPrimaryColor),
+                        shape = RoundedCornerShape(10.dp.scaleSize()),
+                        border = null,
+                        onClick = onUpdateClick,
+                        content = {
+                            Text("Update",style = TextStyle.Default.kPrimaryColorW400FS15().copy(color = kWhite))
+                        }
+                    )
+                }else {
+                    OutlinedButton(
+                        colors = ButtonDefaults.buttonColors(containerColor = if (channel?.isfollowchannel == 0) kPrimaryColor else Color.Transparent),
+                        shape = RoundedCornerShape(10.dp.scaleSize()),
+                        border = if (channel?.isfollowchannel != 0) BorderStroke(
+                            color = kPrimaryColor,
+                            width = 1.dp.scaleSize()
+                        ) else null,
+                        onClick = {
 
-                        if(!isChannelLoading){
+                            if(!isChannelLoading){
 
 
-                            when(channel?.isfollowchannel){
+                                when(channel?.isfollowchannel){
 
-                                0-> {
+                                    0-> {
 
-                                    onChannelEvent(ChannelEvent.FollowChannelEvent(channel.channelid?:0, followingType = FollowingType.FOLLOW))
-                                }
+                                        onChannelEvent(ChannelEvent.FollowChannelEvent(channel.channelid?:0, followingType = FollowingType.FOLLOW))
+                                    }
 
-                                1->{
+                                    1->{
 
-                                    onChannelEvent(ChannelEvent.UnFollowChannelEvent(channel.channelid?:0, followingType = FollowingType.UNFOLLOW))
+                                        onChannelEvent(ChannelEvent.UnFollowChannelEvent(channel.channelid?:0, followingType = FollowingType.UNFOLLOW))
 
+                                    }
                                 }
                             }
-                        }
 
 
-                    }) {
-                    Text(
-                        text = isChangeText(channel?.isfollowchannel == 0),
-                        style = TextStyle.Default.kPrimaryColorW400FS15().copy(color = kWhite)
-                    )
+                        }) {
+                        Text(
+                            text = isChangeText(channel?.isfollowchannel == 0),
+                            style = TextStyle.Default.kPrimaryColorW400FS15().copy(color = kWhite)
+                        )
+                    }
                 }
             }
+
+
+
 
 //            OutlinedButton(
 //                colors = ButtonDefaults.buttonColors(

@@ -55,7 +55,7 @@ import com.sqt.lts.ui.trending.data.response.VideoAudio
 import com.sqt.lts.ui.trending.event.TrendingEvent
 import com.sqt.lts.utils.enums.ChannelUpdateNotUpdateType
 
-@RequiresApi(Build.VERSION_CODES.O)
+
 @Composable
 fun CaAccountPage(
     navHostController: NavHostController,

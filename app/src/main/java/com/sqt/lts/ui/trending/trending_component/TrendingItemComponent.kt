@@ -29,11 +29,12 @@ import com.sqt.lts.ui.channels.state.ChannelUiState
 import com.sqt.lts.ui.home.enums.HomeDataEnums
 import com.sqt.lts.ui.home.event.HomeEvent
 import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelJoinModel
+import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelUiState
 import com.sqt.lts.ui.theme.LtsTheme
 import com.sqt.lts.ui.trending.data.request.TrendingRequestModel
 import com.sqt.lts.ui.trending.data.response.VideoAudio
 import com.sqt.lts.ui.trending.event.TrendingEvent
-
+import com.sqt.lts.utils.enums.GlobalSearchORHomeData
 
 
 @Composable
@@ -47,6 +48,7 @@ fun TrendingItemComponent(
     onHomeDataEvent:(HomeEvent) -> Unit,
     channelUiState: ChannelUiState? =null,
     naviController: NavHostController,
+    homeResourceAndChannelUiState: HomeResourceAndChannelUiState?=null,
 ) {
 
 
@@ -89,10 +91,14 @@ fun TrendingItemComponent(
 
 
     val isVideoLoading = trendingState?.isLoading == true && homeList?.isEmpty() == true
+    val isGlobalDataLoading = homeResourceAndChannelUiState?.isLoading == true
     val isChannelLoading = channelUiState?.isLoading == true && homeList?.isEmpty() == true
 
     val isPagingLoading = (trendingState?.isLoading == true && trendingState.isFirst == false)
     val listForTrendingState = rememberLazyListState()
+
+
+    println("isGlobalDataLoading  : $isGlobalDataLoading")
 
     LaunchedEffect(channelDataState?.data) {
 
@@ -138,7 +144,7 @@ fun TrendingItemComponent(
 
             .collect{
 
-                if((it.lastOrNull()?.index?:0) >= 2 && !isPagingLoading && it.lastOrNull()?.index?.plus(1) == listForTrendingState.layoutInfo.totalItemsCount){
+                if(( it.lastOrNull()?.index?:0) >= 2 && !isPagingLoading && it.lastOrNull()?.index?.plus(1) == listForTrendingState.layoutInfo.totalItemsCount && homeResourceAndChannelUiState?.typeForSelection != GlobalSearchORHomeData.GLOBAL_SEARCH){
                     onTrendingEvent(TrendingEvent.GetTrendingDataForHome(
                         trendingRequestModel = TrendingRequestModel(
                             isFirst = false,
@@ -159,28 +165,30 @@ fun TrendingItemComponent(
         state = listForTrendingState
     ) {
 
-        items(if(isVideoLoading || isChannelLoading) 10  else homeList?.size?:0){
+        items(if(isVideoLoading || isChannelLoading || isGlobalDataLoading) 10  else homeList?.size?:0){
 
             ShimmerEffectBox(
-                    isShow = (isVideoLoading && isChannelLoading),
+                    isShow = (isVideoLoading && isChannelLoading && isGlobalDataLoading),
                     content = {
 
-                        if(!(isVideoLoading || isChannelLoading)){
+                        if(!(isVideoLoading || isChannelLoading || isGlobalDataLoading)){
 
                             if(homeList?.get(it)?.homeDataEnums == HomeDataEnums.CHANNEL){
 
-                                CustomChannelViewComponent(title = "Other Channel",
+                                CustomChannelViewComponent(
+                                    homeResourceAndChannelUiState = homeResourceAndChannelUiState,
                                     channelDataState=channelDataState,
                                     channelUiState = channelUiState,
                                     channelList=homeList[it]?.channelList,
                                     onChannelEvent = onChannelEvent,
-                                    onHomeDataEvent = onHomeDataEvent,
-                                    trendingState = trendingState)
+                                    onHomeDataEvent = onHomeDataEvent)
 
                             }else{
 
+
                                 VideoComponent(
                                     onWatchClick = onWatchClick,
+                                    homeResourceAndChannelUiState = homeResourceAndChannelUiState,
                                     naviController = naviController, trendingItem = homeList?.get(it)?.videoItem,
                                     onClick = {
                                     naviController.navigate(TrendingDetailRoute(
@@ -197,20 +205,18 @@ fun TrendingItemComponent(
 
 
                     },
-                    modifier = if((isVideoLoading && isChannelLoading)) Modifier.fillMaxWidth().padding(10.dp).height(200.dp.scaleSize()) else Modifier
+                    modifier = if((isVideoLoading && isChannelLoading && isGlobalDataLoading)) Modifier.fillMaxWidth().padding(10.dp).height(200.dp.scaleSize()) else Modifier
                 )
 
                 if(isPagingLoading && homeList?.size == it.plus(1)){
-                ShimmerEffectBox(
+                    ShimmerEffectBox(
                     isShow = true,
                     modifier =  Modifier.fillMaxWidth().padding(10.dp).height(200.dp.scaleSize()),
                     content = {}
-
-                )
+                    )
             }
 
-
-                }
+        }
 
 
     }

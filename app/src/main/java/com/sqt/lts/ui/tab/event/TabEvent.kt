@@ -9,5 +9,6 @@ sealed class TabEvent {
 
     data class GlobalSearchReq(var bottomNavBarItem: BottomNavBarItem?,val isSearch: Boolean?) : TabEvent()
 
+    data class GlobalHomeSearchData(val searchQry: String) : TabEvent()
 
 }

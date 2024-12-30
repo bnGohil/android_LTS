@@ -92,7 +92,6 @@ import com.example.lts.utils.extainstion.kWhiteW500FS17
 import com.example.lts.utils.network.DataState
 import com.example.lts.utils.scaleSize
 import com.sqt.lts.custom_component.CustomNetworkImageView
-import com.sqt.lts.ui.channels.data.request.ChannelRequestModel
 import com.sqt.lts.ui.channels.data.response.ChannelData
 import com.sqt.lts.ui.channels.state.ChannelFollowingState
 import com.sqt.lts.ui.channels.state.ChannelUiState
@@ -100,20 +99,20 @@ import com.sqt.lts.ui.history.event.HistoryAndWatchListEvent
 import com.sqt.lts.ui.home.enums.HomeDataEnums
 import com.sqt.lts.ui.home.event.HomeEvent
 import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelJoinModel
+import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelUiState
 import com.sqt.lts.ui.profile.state.UserDetailGetState
 import com.sqt.lts.ui.tab.state.SelectedTabAndSearch
 import com.sqt.lts.ui.theme.LtsTheme
-import com.sqt.lts.ui.trending.data.request.TrendingRequestModel
 import com.sqt.lts.ui.trending.data.response.VideoAudio
 import com.sqt.lts.ui.trending.event.TrendingEvent
 import com.sqt.lts.utils.enums.ChannelUpdateNotUpdateType
 import kotlinx.coroutines.launch
 
 @SuppressLint("WrongNavigateRouteType")
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TabPage(
     homeList: List<HomeResourceAndChannelJoinModel?>? = arrayListOf(),
+    homeResourceAndChannelUiState: HomeResourceAndChannelUiState?=null,
     navHostController: NavHostController,
     onCategoryEvent: (CategoriesEvent) -> Unit,
     onHomeDataEvent: (HomeEvent) -> Unit,
@@ -130,7 +129,6 @@ fun TabPage(
     tabState: TabState? = null,
     onTabEvent: (TabEvent) -> Unit,
     saveLoginState: SaveLoginState? = null,
-    selectedTab: CategoryType? = null,
     selectedCategoryForHome: Category? = null,
     selectedCategoriesForTrending: Category? = null,
     channelDataState: ChannelFollowingState? = null,
@@ -357,9 +355,7 @@ fun TabPage(
            saveLoginState = saveLoginState,
            selectedCategoryForHome = selectedCategoryForHome,
            categoriesState = categoriesState,
-           userDetailUiState = userDetailUiState,
            channelDataState=channelDataState,
-           selectedTab = selectedTab,
            categoryForTrendingState = categoryForTrendingState,
            channelHomeUiState = channelHomeUiState,
            bottomNavBarItem = tabState?.selectedTab,
@@ -375,7 +371,9 @@ fun TabPage(
            trendingState = trendingState,
            selectedCategoriesForTrending = selectedCategoriesForTrending,
            onHistoryAndWatchListEvent = onHistoryAndWatchListEvent,
-           addAndRemoveWatchListAppResponse = addAndRemoveWatchListAppResponse
+           addAndRemoveWatchListAppResponse = addAndRemoveWatchListAppResponse,
+           tabEventOnClick = onTabEvent,
+           homeResourceAndChannelUiState = homeResourceAndChannelUiState
        )
    }
    }
@@ -457,17 +455,15 @@ private fun TabPagePreview() {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ReturnScreens(
     saveLoginState: SaveLoginState? =null,
+    homeResourceAndChannelUiState: HomeResourceAndChannelUiState?=null,
     addAndRemoveWatchListAppResponse: DataState<BaseCommonResponseModel.Data?>? =null,
     selectedCategoriesForTrending: Category?=null,
     selectedCategoryForHome: Category?=null,
-    userDetailUiState: UserDetailGetState? =null,
     selectedTabAndSearch: SelectedTabAndSearch? = null,
     onTrendingEvent:(TrendingEvent) -> Unit,
-    selectedTab:CategoryType?=null,
     homeList: List<HomeResourceAndChannelJoinModel?>?=arrayListOf(),
     trendingHomeState: TrendingState? =null,
     trendingState: TrendingState? =null,
@@ -483,14 +479,13 @@ fun ReturnScreens(
     categoriesState: CategoriesState? =null,
     onHistoryAndWatchListEvent:(HistoryAndWatchListEvent) -> Unit,
     channelDataState:ChannelFollowingState?=null,
+    tabEventOnClick:(TabEvent) -> Unit,
     ){
 
     when(bottomNavBarItem){
         BottomNavBarItem.categories -> {
             Categories(
-                navController = navController,
                 onCategoryEvent = onCategoryEvent,
-                selectedTab = selectedTab,
                 categoriesState=categoriesState
             )
         }
@@ -517,6 +512,8 @@ fun ReturnScreens(
                 onTrendingEvent = onTrendingEvent,
                 onHistoryAndWatchListEvent = onHistoryAndWatchListEvent,
                 addAndRemoveWatchListAppResponse = addAndRemoveWatchListAppResponse,
+                tabEventOnClick = tabEventOnClick,
+                homeResourceAndChannelUiState = homeResourceAndChannelUiState
             )
         }
         BottomNavBarItem.profile -> {

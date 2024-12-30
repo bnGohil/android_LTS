@@ -152,7 +152,8 @@ interface RestApiService {
     suspend fun sharedTrendingData(@Body sharedTrendingRequestModel: SharedTrendingRequestModel):BaseCommonResponseModel
 
     @POST("resource/global-search")
-    suspend fun getSearchGlobalData( @Field("p_searchtext") searchText : String?) : GlobalSearchResponseModel
+    @FormUrlEncoded
+    suspend fun getSearchGlobalData(@Field("p_searchtext") searchText : String?) : GlobalSearchResponseModel
 
     @POST("projectterm/projecttermbytermcategory")
     suspend fun projectTermByTermCategory(@Body termCategoryRequestModel:TermCategoryRequestModel) : BaseTermDataModel

@@ -45,7 +45,6 @@ import com.sqt.lts.ui.theme.LtsTheme
 import com.sqt.lts.ui.trending.data.request.TrendingRequestModel
 import com.sqt.lts.ui.trending.event.TrendingEvent
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Trending(
     navController: NavHostController,

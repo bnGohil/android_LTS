@@ -42,9 +42,11 @@ import com.example.lts.utils.extainstion.kPrimaryColorW500FS15
 import com.example.lts.utils.extainstion.kWhiteW600FS17
 import com.example.lts.utils.scaleSize
 import com.sqt.lts.custom_component.CustomNetworkImageView
+import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelUiState
 import com.sqt.lts.ui.theme.LtsTheme
 import com.sqt.lts.ui.theme.kWhite
 import com.sqt.lts.ui.trending.data.response.VideoAudio
+import com.sqt.lts.utils.enums.GlobalSearchORHomeData
 import java.nio.file.WatchEvent
 
 @Composable
@@ -52,6 +54,7 @@ fun VideoComponent(
     naviController:NavHostController,
     onClick: () -> Unit,
     onWatchClick: (VideoAudio?) -> Unit,
+    homeResourceAndChannelUiState: HomeResourceAndChannelUiState?=null,
     trendingItem: VideoAudio?=null) {
     Column(modifier = Modifier
         .fillMaxWidth()
@@ -80,33 +83,31 @@ fun VideoComponent(
             Spacer(modifier = Modifier.height(10.dp.scaleSize()))
             Text(text = trendingItem?.categoryname?:"", style = TextStyle.Default.kWhiteW600FS17(), minLines = 1, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Spacer(modifier = Modifier.height(10.dp.scaleSize()))
-//            if(trendingItem?.listCategory?.isNotEmpty() == true || trendingItem?.listCategory != null){
-//                Text(text = trendingItem.listCategory.joinToString(separator = "\t•\t") { element -> element }
-//                    ?:"", style = TextStyle.Default.kPrimaryColorW500FS15())
-//            }
-            Spacer(modifier = Modifier.height(10.dp.scaleSize()))
-            Row {
-                Row(modifier = Modifier.weight(1F), verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "${trendingItem?.views ?: "0"} Views", style = TextStyle.Default.kLightTextColorW500FS15())
-                    Spacer(modifier = Modifier.width(width = 5.dp.scaleSize()))
-                    Image(painter = painterResource(id = R.drawable.datetime_calender), contentDescription = "",modifier = Modifier.size(20.dp.scaleSize()))
-                    Text(text = trendingItem?.timedurationupload?:"", style = TextStyle.Default.kLightTextColorW500FS15())
-                }
+            if(homeResourceAndChannelUiState?.typeForSelection != GlobalSearchORHomeData.GLOBAL_SEARCH){
+                Row() {
+                    Row(modifier = Modifier.weight(1F), verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "${trendingItem?.views ?: "0"} Views", style = TextStyle.Default.kLightTextColorW500FS15())
+                        Spacer(modifier = Modifier.width(width = 5.dp.scaleSize()))
+                        Image(painter = painterResource(id = R.drawable.datetime_calender), contentDescription = "",modifier = Modifier.size(20.dp.scaleSize()))
+                        Text(text = trendingItem?.timedurationupload?:"", style = TextStyle.Default.kLightTextColorW500FS15())
+                    }
 
-                Row {
-                    Image(painter = painterResource(id = R.drawable.start_video), contentDescription = "", modifier = Modifier.size(24.dp.scaleSize()))
-                    Spacer(modifier = Modifier.width(width = 5.dp.scaleSize()))
-                    Image(
-                        painter = painterResource(id = if(trendingItem?.isaddedinwatchlist == 1) R.drawable.bookmark else R.drawable.favorite),
-                      colorFilter = ColorFilter.tint(kWhite, blendMode = BlendMode.SrcIn),
-                      contentDescription = "",modifier = Modifier.size(24.dp.scaleSize()).clickable{
-                            onWatchClick(trendingItem)
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(width = 10.dp.scaleSize()))
+                    Row {
+                        Image(painter = painterResource(id = R.drawable.start_video), contentDescription = "", modifier = Modifier.size(24.dp.scaleSize()))
+                        Spacer(modifier = Modifier.width(width = 5.dp.scaleSize()))
+                        Image(
+                            painter = painterResource(id = if(trendingItem?.isaddedinwatchlist == 1) R.drawable.bookmark else R.drawable.favorite),
+                            colorFilter = ColorFilter.tint(kWhite, blendMode = BlendMode.SrcIn),
+                            contentDescription = "",modifier = Modifier.size(24.dp.scaleSize()).clickable{
+                                onWatchClick(trendingItem)
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(width = 10.dp.scaleSize()))
+                    }
                 }
+                Spacer(modifier = Modifier.height(10.dp.scaleSize()))
             }
-            Spacer(modifier = Modifier.height(10.dp.scaleSize()))
+
         }
     }
 }

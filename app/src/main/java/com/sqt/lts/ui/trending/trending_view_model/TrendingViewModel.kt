@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
-@RequiresApi(Build.VERSION_CODES.O)
+
 @HiltViewModel
 class TrendingViewModel @Inject constructor(private val trendingRepository: TrendingRepository) : ViewModel() {
 
@@ -201,7 +201,10 @@ class TrendingViewModel @Inject constructor(private val trendingRepository: Tren
        if(trendingRequestModel?.isFirst == true){
            currentHomeTrendingPage = 1
            videoAudioForHomeDataList.clear()
+           _trendingHomeState.value.videoAudioList = emptyList()
        }
+
+
 
        if(trendingRequestModel?.isFirst == false && ((videoAudioForHomeDataList.size) >= (_trendingHomeState.value.totalRecord ?: 0))) return
 

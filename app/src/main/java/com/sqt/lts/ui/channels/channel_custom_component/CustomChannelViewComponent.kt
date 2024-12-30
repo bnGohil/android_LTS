@@ -26,17 +26,18 @@ import com.sqt.lts.ui.channels.data.response.ChannelData
 import com.sqt.lts.ui.channels.state.ChannelFollowingState
 import com.sqt.lts.ui.channels.state.ChannelUiState
 import com.sqt.lts.ui.home.event.HomeEvent
+import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelUiState
 import com.sqt.lts.ui.theme.LtsTheme
+import com.sqt.lts.utils.enums.GlobalSearchORHomeData
 
 @Composable
 fun CustomChannelViewComponent(
-    title: String? = null,
-    trendingState: TrendingState? =null,
     channelList: List<ChannelData?>?= arrayListOf(),
     channelUiState: ChannelUiState? =null,
     onChannelEvent:(ChannelEvent) -> Unit,
     channelDataState:ChannelFollowingState?=null,
     onHomeDataEvent:(HomeEvent) -> Unit,
+    homeResourceAndChannelUiState: HomeResourceAndChannelUiState?=null,
 ) {
 
     val isPagingLoading = (channelUiState?.isLoading == true && channelUiState.isFirst == false)
@@ -46,7 +47,7 @@ fun CustomChannelViewComponent(
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo }
             .collect{
-                if((it.lastOrNull()?.index?:0) >= 9 && !isPagingLoading && it.lastOrNull()?.index?.plus(1) == listState.layoutInfo.totalItemsCount){
+                if((it.lastOrNull()?.index?:0) >= 9 && !isPagingLoading && it.lastOrNull()?.index?.plus(1) == listState.layoutInfo.totalItemsCount && homeResourceAndChannelUiState?.typeForSelection != GlobalSearchORHomeData.GLOBAL_SEARCH){
                     onChannelEvent(ChannelEvent.GetHomeChannelData(
                         channelRequestModel = ChannelRequestModel(
                             isFirst = false,
@@ -67,12 +68,10 @@ fun CustomChannelViewComponent(
         Spacer(modifier = Modifier.height(15.dp.scaleSize()))
         LazyRow(state = listState) {
             items(channelList?.size?:0){
-//                if(channelList?.size == it.plus(1) && !isPagingLoading){
-//
-//                }
                 ChannelElementComponent(channelList?.get(it),
                     onChannelEvent = onChannelEvent,
                     onHomeDataEvent = onHomeDataEvent,
+                    homeResourceAndChannelUiState = homeResourceAndChannelUiState,
                     onUpdateClick = {},
                     channelDataState=channelDataState)
                 if(isPagingLoading && (it.plus(1) == channelList?.size)){
@@ -101,7 +100,7 @@ fun CustomChannelViewComponent(
 @Composable
 private fun CustomChannelViewComponentPreview() {
     LtsTheme {
-        CustomChannelViewComponent(title = "Popular Channels",
+        CustomChannelViewComponent(
             channelList = listOf<ChannelData?>(
                 ChannelData(channelname = "My Channel 1", followers = "1 Followers"),
                 ChannelData(channelname = "My Channel 2", followers = "2 Followers"),

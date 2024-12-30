@@ -1,10 +1,7 @@
 package com.sqt.lts.ui.home.view_model
 
-import android.annotation.SuppressLint
-import androidx.annotation.OptIn
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.util.UnstableApi
 import com.sqt.lts.ui.channels.event.FollowingType
 import com.sqt.lts.ui.channels.data.response.ChannelData
 import com.sqt.lts.ui.home.enums.HomeDataEnums
@@ -12,14 +9,13 @@ import com.sqt.lts.ui.home.event.HomeEvent
 import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelJoinModel
 import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelUiState
 import com.sqt.lts.ui.trending.data.response.VideoAudio
+import com.sqt.lts.utils.enums.GlobalSearchORHomeData
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
-import kotlin.collections.ArrayList
-
 
 class HomeViewModel() : ViewModel(){
 
@@ -57,8 +53,6 @@ class HomeViewModel() : ViewModel(){
                     delay(2000)
                 }
 
-                println("event.first : ${event.first}")
-
                 if(event.first == true){
                     getHomeList()
                 }else{
@@ -80,7 +74,9 @@ class HomeViewModel() : ViewModel(){
                 addAndRemoveWatchList(event.resourceId)
             }
 
-
+            is HomeEvent.UpdateSearchData -> {
+                updateGlobalSearchData(event.searchData)
+            }
         }
 
     }
@@ -93,14 +89,14 @@ class HomeViewModel() : ViewModel(){
         }
     }
 
+    private fun updateGlobalSearchData(data: List<HomeResourceAndChannelJoinModel?>? = arrayListOf()){
+        if(data == null) return
+        _homeUiState.update { it.copy(homeDataList=data, typeForSelection = GlobalSearchORHomeData.GLOBAL_SEARCH) }
+    }
+
     private fun getChannelList(channelList: List<ChannelData?>?=arrayListOf(), isFirst: Boolean?=false){
 
         if(channelList == null) return
-
-
-//        if(isFirst == true){
-//            _channelList.clear()
-//        }
 
         val arrayList = arrayListOf<HomeResourceAndChannelJoinModel>()
 
@@ -121,7 +117,7 @@ class HomeViewModel() : ViewModel(){
 
             }
 
-            _homeUiState.value  = _homeUiState.value.copy(homeDataList = arrayList)
+            _homeUiState.value  = _homeUiState.value.copy(homeDataList = arrayList, typeForSelection = GlobalSearchORHomeData.HOME_DATA)
 
         }
     }
@@ -157,32 +153,10 @@ class HomeViewModel() : ViewModel(){
                 homeDataEnums = HomeDataEnums.CHANNEL
             ))
         }
-
-
-        println("_homeList is ${_homeList.size}")
-
         _homeList.forEach {
             println(it?.homeDataEnums)
         }
-
-
-
-//        _homeUiState.value = _homeUiState.value.copy(homeDataList =_homeList.toList())
-
-
-//        _homeList.forEach {
-//            println("it?.channelList : ${it?.channelList}")
-//        }
-
-        println("RESPONSE WHEN IS CHECK DATA ${_homeUiState.value.homeDataList}")
-        _homeUiState.updateAndGet { it.copy(homeDataList =_homeList.toList()) }
-
-
-//        _homeUiState.value.homeDataList.forEach {
-//            var videoData = it
-//            println("Video Data $videoData")
-//        }
-
+        _homeUiState.updateAndGet { it.copy(homeDataList =_homeList.toList(), typeForSelection = GlobalSearchORHomeData.HOME_DATA) }
     }
 
     private fun videoData(){
@@ -203,13 +177,15 @@ class HomeViewModel() : ViewModel(){
         }
 
         _homeUiState.value = _homeUiState.value.copy(
-            homeDataList = arrayList
+            homeDataList = arrayList,
+            typeForSelection = GlobalSearchORHomeData.HOME_DATA
         )
     }
 
 
     private fun addAndRemoveWatchList(resourceId: Int?) {
         _homeUiState.update { homeResourceAndChannelUiState -> homeResourceAndChannelUiState.copy(
+            typeForSelection = GlobalSearchORHomeData.HOME_DATA,
             homeDataList = homeResourceAndChannelUiState.homeDataList.map { it?.copy(videoItem = if(it.videoItem?.resourceid == resourceId) it.videoItem?.copy(isaddedinwatchlist = if(it.videoItem.isaddedinwatchlist == 0) 1 else 0) else it.videoItem)  })
         }
     }
@@ -234,8 +210,7 @@ class HomeViewModel() : ViewModel(){
         _videoList.clear()
         _channelList.clear()
         _homeList.clear()
-        _homeUiState.value.homeDataList = emptyList()
-        _homeUiState.update { it.copy(homeDataList = _homeList) }
+        _homeUiState.update { it.copy(homeDataList = emptyList(), typeForSelection = GlobalSearchORHomeData.HOME_DATA) }
     }
 
 

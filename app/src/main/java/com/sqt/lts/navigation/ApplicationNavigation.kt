@@ -64,6 +64,7 @@ import com.sqt.lts.ui.channels.data.request.ChannelRequestModel
 import com.sqt.lts.ui.history.event.HistoryAndWatchListEvent
 import com.sqt.lts.ui.history.request.HistoryAndWatchListRequestModel
 import com.sqt.lts.ui.history.viewmodel.HistoryWatchListViewModel
+import com.sqt.lts.ui.home.event.HomeEvent
 import com.sqt.lts.ui.home.view_model.HomeViewModel
 import com.sqt.lts.ui.post_video.SaveVideoPostPage
 import com.sqt.lts.ui.profile.event.ProfileEvent
@@ -74,7 +75,7 @@ import com.sqt.lts.ui.trending.trending_view_model.TrendingViewModel
 
 @OptIn(ExperimentalLayoutApi::class)
 @SuppressLint("StateFlowValueCalledInComposition", "RestrictedApi", "SuspiciousIndentation")
-@RequiresApi(Build.VERSION_CODES.O)
+
 @Composable
 fun ApplicationNavigation(isLogin: Boolean?=null){
 
@@ -160,6 +161,7 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                 val trendingHomeState = trendingViewModel.trendingHomeState.collectAsStateWithLifecycle(initialValue = null)
                 val trendingState = trendingViewModel.trendingState.collectAsStateWithLifecycle(initialValue = null)
                 val homeUiState = homeProvider.homeUiState.collectAsStateWithLifecycle(initialValue = null)
+                val homeGlobalSearchAppResponse = tabViewModel.homeGlobalSearchAppResponse.collectAsStateWithLifecycle(initialValue = null)
                 val tabState = tabViewModel.tabState.collectAsStateWithLifecycle(initialValue = null)
                 val selectedTab = categoriesViewModel.selectedTab.value
                 val channelUiState = channelViewModel.followUnFollowAppResponse.collectAsStateWithLifecycle(null)
@@ -167,11 +169,17 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
 
 
 
-                println("RESPONSE IS ${selectedTabAndSearch.value}")
+                println("typeForSelection:${homeGlobalSearchAppResponse.value?.typeForSelection}")
+
+
 
 
                 LaunchedEffect(tabViewModel) {
                     tabViewModel.onEvent(TabEvent.GetTabData)
+                }
+
+                LaunchedEffect(Unit) {
+                    homeProvider.onEvent(HomeEvent.ClearData)
                 }
 
 
@@ -202,6 +210,7 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
 
 
                 LaunchedEffect(key1 = channelViewModel) {
+//
                     channelViewModel.onEvent(ChannelEvent.GetHomeChannelData(
                         channelRequestModel = ChannelRequestModel(
                             isFirst = true,
@@ -219,6 +228,7 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
 
 
                 LaunchedEffect(key1 = trendingViewModel) {
+//                    homeProvider.onEvent(HomeEvent.ClearData)
                     trendingViewModel.onEvent(TrendingEvent.GetTrendingDataForHome(
                         trendingRequestModel = TrendingRequestModel(
                             isFirst = true,
@@ -250,11 +260,11 @@ fun ApplicationNavigation(isLogin: Boolean?=null){
                     onHomeDataEvent = homeProvider::onEvent,
                     trendingHomeState = trendingHomeState.value,
                     homeList = homeUiState.value?.homeDataList,
+                    homeResourceAndChannelUiState = homeGlobalSearchAppResponse.value,
                     onChannelEvent = channelViewModel::onEvent,
                     onTrendingEvent = trendingViewModel::onEvent,
                     onTabEvent = tabViewModel::onEvent,
                     tabState = tabState.value,
-                    selectedTab = selectedTab,
                     categoriesState = categoryDataState.value,
                     channelUiState = getChannelResponse.value,
                     categoryForTrendingState = categoryForTrendingState.value,

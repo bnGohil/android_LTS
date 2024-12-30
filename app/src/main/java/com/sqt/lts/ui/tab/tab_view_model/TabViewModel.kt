@@ -5,14 +5,29 @@ import androidx.lifecycle.viewModelScope
 import com.example.lts.ui.tab.bottom_bar.BottomNavBarItem
 import com.example.lts.ui.tab.event.TabEvent
 import com.example.lts.ui.tab.state.TabState
+import com.example.lts.utils.network.DataState
 import com.sqt.lts.repository.TabRepository
+import com.sqt.lts.ui.channels.data.response.ChannelData
+import com.sqt.lts.ui.home.enums.HomeDataEnums
+import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelJoinModel
+import com.sqt.lts.ui.home.homeUiState.HomeResourceAndChannelUiState
 import com.sqt.lts.ui.tab.state.SelectedTabAndSearch
+import com.sqt.lts.ui.trending.data.response.VideoAudio
+import com.sqt.lts.utils.enums.ApiResponseType
+import com.sqt.lts.utils.enums.GlobalSearchORHomeData
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 
@@ -27,8 +42,13 @@ class TabViewModel @Inject constructor(private val tabRepository: TabRepository)
     private val _selectedAndSearchValue = Channel<SelectedTabAndSearch>()
     val selectedAndSearchValue = _selectedAndSearchValue.receiveAsFlow()
 
+    private var globalSearchJob : Job?=null
+
+    private val _homeGlobalSearchAppResponse = MutableStateFlow(HomeResourceAndChannelUiState())
+    val homeGlobalSearchAppResponse = _homeGlobalSearchAppResponse.asStateFlow()
 
 
+    private var homeDataList  = arrayListOf<HomeResourceAndChannelJoinModel?>()
 
 
 
@@ -46,16 +66,17 @@ class TabViewModel @Inject constructor(private val tabRepository: TabRepository)
             is TabEvent.GlobalSearchReq -> {
                 updateAndShowHideData(bottomNavBarItem = event.bottomNavBarItem, isSearch = event.isSearch)
             }
+
+            is TabEvent.GlobalHomeSearchData -> {
+                getHomeGlobalSearchData(event.searchQry)
+            }
         }
     }
 
     private fun getTabListData(){
-
-        viewModelScope.launch {
-//         val response = tabRepository.getTabListData()
-//         _tabState.value = _tabState.value.copy(tabList = response)
-     }
-
+        tabRepository.getTabListData().onEach {
+            _tabState.value = _tabState.value.copy(tabList = it)
+        }.launchIn(viewModelScope)
     }
 
 
@@ -70,49 +91,86 @@ class TabViewModel @Inject constructor(private val tabRepository: TabRepository)
      }
     }
 
+    private fun getHomeGlobalSearchData(searchQry: String){
+
+
+
+
+        println("searchQry : $searchQry")
+
+        globalSearchJob?.cancel()
+        globalSearchJob = tabRepository.getGlobalSearchData(searchQry).onEach { dataState ->
+
+            when(dataState){
+
+                is DataState.Error -> {
+                    homeDataList.clear()
+                    _homeGlobalSearchAppResponse.value = _homeGlobalSearchAppResponse.value.copy(isLoading = false, homeDataList = arrayListOf(), apiResponseType = ApiResponseType.ERROR, typeForSelection = GlobalSearchORHomeData.GLOBAL_SEARCH)
+                }
+
+                DataState.Loading -> {
+                    homeDataList.clear()
+                    _homeGlobalSearchAppResponse.value = _homeGlobalSearchAppResponse.value.copy(isLoading = true, homeDataList = arrayListOf(), apiResponseType = ApiResponseType.LOADING,typeForSelection = GlobalSearchORHomeData.GLOBAL_SEARCH)
+                }
+
+                is DataState.Success -> {
+
+                    if(searchQry.isEmpty()) {
+                        homeDataList.clear()
+                        _homeGlobalSearchAppResponse.update { it.copy(
+                            homeDataList = homeDataList,
+                            typeForSelection = GlobalSearchORHomeData.HOME_DATA,
+                            isLoading = false
+                        ) }
+
+                    }else{
+                        runBlocking {
+
+
+                            val channelList = dataState.data?.filter { it?.type == "Channel"}
+
+                            val videoAudioList = dataState.data?.filter { (it?.type == "Video" || it?.type == "Audio")}
+
+                            withContext(Dispatchers.Default){
+                                videoAudioList?.forEach {
+                                    homeDataList.add(HomeResourceAndChannelJoinModel(homeDataEnums = HomeDataEnums.RESOURCE, videoItem = VideoAudio(
+                                        resourceid = it?.id,
+                                        thumbimgurl = it?.thumbimgurl,
+                                        title = it?.title,
+                                        resourcedurationinminute = it?.resourcedurationinminute,
+                                        categoryname = it?.categoryname,
+                                        longdetails = it?.description
+                                    )))
+                                }
+
+                            }
+
+                            withContext(Dispatchers.Default){
+
+
+                                val channel = arrayListOf<ChannelData>()
+
+                                if(channelList?.isNotEmpty() == true){
+                                    channelList.forEach { channel.add(ChannelData(channelid = it?.id, channelname = it?.title, channelimgurl = it?.thumbimgurl)) }
+                                }
+
+                                if(videoAudioList?.isNotEmpty() == true && videoAudioList.size >= 2){
+                                    homeDataList.add(2, HomeResourceAndChannelJoinModel(homeDataEnums = HomeDataEnums.CHANNEL, channelList = channel))
+                                }else{
+                                    homeDataList.add(videoAudioList?.size ?:0, HomeResourceAndChannelJoinModel(homeDataEnums = HomeDataEnums.CHANNEL, channelList = channel))
+                                }
+
+                            }
+                        }
+                        _homeGlobalSearchAppResponse.value = _homeGlobalSearchAppResponse.value.copy(isLoading = false, homeDataList = homeDataList, apiResponseType = ApiResponseType.SUCCESS,typeForSelection = GlobalSearchORHomeData.GLOBAL_SEARCH)
+                    }
+
+
+                }
+            }
+        }.launchIn(viewModelScope)
+    }
+
 
 }
 
-
-//class TabViewModel : ViewModel() {
-//
-//
-//
-//
-//    private val _updateBottomNavBarUiState = mutableStateOf<BottomNavBarItem>(BottomNavBarItem.home)
-//    val updateBottomNavBarUiState: State<BottomNavBarItem> = _updateBottomNavBarUiState
-//
-//    private val _tabList = mutableListOf<BottomNavBarItem>()
-//    val tabList : MutableList<BottomNavBarItem> = _tabList
-//
-//
-////    private var _updateBottomNavBarUiState = MutableStateFlow<BottomNavBarItem>(BottomNavBarItem.home)
-////    var updateBottomNavBarUiState = _updateBottomNavBarUiState
-//
-//
-//    fun getTabList(isLogin: Boolean?=null){
-//        when(isLogin){
-//            true -> {
-//            _tabList.add(BottomNavBarItem.home)
-//            _tabList.add(BottomNavBarItem.categories)
-//            _tabList.add(BottomNavBarItem.channels)
-//            _tabList.add(BottomNavBarItem.trending)
-//            _tabList.add(BottomNavBarItem.profile)
-//            }
-//            false -> {
-//                _tabList.add(BottomNavBarItem.home)
-//                _tabList.add(BottomNavBarItem.categories)
-//                _tabList.add(BottomNavBarItem.channels)
-//                _tabList.add(BottomNavBarItem.trending)
-//            }
-//            null -> TODO()
-//        }
-//    }
-//
-//    fun updateTabData(bottomNavBarItem: BottomNavBarItem?=null){
-//        if(bottomNavBarItem == null) return
-//        _updateBottomNavBarUiState.value = bottomNavBarItem
-//    }
-//
-//
-//}

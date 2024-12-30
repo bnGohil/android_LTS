@@ -60,7 +60,7 @@ import com.sqt.lts.ui.trending.data.request.TrendingRequestModel
 import com.sqt.lts.ui.trending.event.TrendingEvent
 import com.sqt.lts.ui.trending.trending_view_model.TrendingViewModel
 
-@RequiresApi(Build.VERSION_CODES.O)
+
 @Composable
 fun HistoryScreen(
     navHostController: NavHostController,
